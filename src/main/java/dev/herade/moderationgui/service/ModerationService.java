@@ -40,6 +40,28 @@ public final class ModerationService {
     }
 
 
+
+    public void updatePlayerNotes(String targetUuid, String notes, String moderatorUuid,
+                                  long timestamp) throws SQLException {
+        inTransaction(() -> {
+            try (var statement = database.connection().prepareStatement(
+                    "UPDATE players SET notes = ? WHERE uuid = ?")) {
+                String safeNotes = notes == null ? "" : notes;
+                if (safeNotes.length() > 2000) {
+                    throw new IllegalArgumentException("Player notes cannot exceed 2000 characters");
+                }
+                statement.setString(1, safeNotes);
+                statement.setString(2, targetUuid);
+                if (statement.executeUpdate() == 0) {
+                    throw new IllegalArgumentException("Player profile does not exist");
+                }
+            }
+            activityLog.record(moderatorUuid, "PLAYER_NOTES_UPDATED",
+                    targetUuid, "Player notes updated", timestamp);
+            return null;
+        });
+    }
+
     public void recordAction(String moderatorUuid, String action, String targetUuid,
                              String details, long timestamp) throws SQLException {
         inTransaction(() -> {
