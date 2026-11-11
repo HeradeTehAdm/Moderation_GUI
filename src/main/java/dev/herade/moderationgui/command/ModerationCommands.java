@@ -87,7 +87,7 @@ public final class ModerationCommands {
                                                         .executes(context -> changeRankPermission(context.getSource(),
                                                                 StringArgumentType.getString(context, "rank"),
                                                                 StringArgumentType.getString(context, "node"),
-                                                                StringArgumentType.getString(context, "action"))))))
+                                                                StringArgumentType.getString(context, "action")))))))
                         .then(Commands.literal("player")
                                 .requires(source -> canUse(source, "moderation.permissions.manage"))
                                 .then(Commands.argument("player", StringArgumentType.word())
@@ -96,7 +96,7 @@ public final class ModerationCommands {
                                                         .executes(context -> changePlayerPermission(context.getSource(),
                                                                 StringArgumentType.getString(context, "player"),
                                                                 StringArgumentType.getString(context, "node"),
-                                                                StringArgumentType.getString(context, "action"))))))
+                                                                StringArgumentType.getString(context, "action")))))))
                         .then(Commands.literal("ranklist")
                                 .requires(source -> canUse(source, "moderation.permissions.view"))
                                 .then(Commands.argument("rank", StringArgumentType.word())
