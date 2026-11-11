@@ -122,6 +122,40 @@ public final class RankRepository {
         return List.copyOf(ranks);
     }
 
+    public List<Rank> findAll() throws SQLException {
+        List<Rank> result = new ArrayList<>();
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT id, name, display_prefix, color, priority, parent_rank_id
+                FROM ranks ORDER BY priority DESC, name COLLATE NOCASE ASC
+                """);
+             ResultSet rows = statement.executeQuery()) {
+            while (rows.next()) {
+                long parent = rows.getLong("parent_rank_id");
+                Long parentId = rows.wasNull() ? null : parent;
+                result.add(new Rank(rows.getLong("id"), rows.getString("name"),
+                        rows.getString("display_prefix"), rows.getString("color"),
+                        rows.getInt("priority"), parentId));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    public void update(long rankId, String prefix, String color, int priority) throws SQLException {
+        String normalizedPrefix = prefix == null ? "" : prefix;
+        String normalizedColor = color == null || color.isBlank() ? "white" : color.trim();
+        if (normalizedPrefix.length() > 64) throw new IllegalArgumentException("Rank prefix cannot exceed 64 characters");
+        if (normalizedColor.length() > 24) throw new IllegalArgumentException("Rank color cannot exceed 24 characters");
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                UPDATE ranks SET display_prefix = ?, color = ?, priority = ? WHERE id = ?
+                """)) {
+            statement.setString(1, normalizedPrefix);
+            statement.setString(2, normalizedColor);
+            statement.setInt(3, priority);
+            statement.setLong(4, rankId);
+            if (statement.executeUpdate() == 0) throw new IllegalArgumentException("Rank does not exist: " + rankId);
+        }
+    }
+
     public Optional<Rank> findByName(String name) throws SQLException {
         try (PreparedStatement statement = database.connection().prepareStatement(
                 "SELECT id, name, display_prefix, color, priority, parent_rank_id FROM ranks WHERE name = ?")) {
