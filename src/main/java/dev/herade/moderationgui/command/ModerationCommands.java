@@ -108,6 +108,13 @@ public final class ModerationCommands {
                                         .executes(context -> listPlayerPermissions(context.getSource(),
                                                 StringArgumentType.getString(context, "player")))))
                 )
+                .then(Commands.literal("kick")
+                        .requires(source -> canUse(source, "moderation.kick"))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                                .then(Commands.argument("reason", StringArgumentType.greedyString())
+                                        .executes(context -> kickPlayer(context.getSource(),
+                                                StringArgumentType.getString(context, "player"),
+                                                StringArgumentType.getString(context, "reason"))))))
                 .then(Commands.literal("warn")
                         .requires(source -> canUse(source, "moderation.warn"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -354,7 +361,8 @@ public final class ModerationCommands {
     private static int showHelp(CommandSourceStack source) {
         source.sendSuccess(() -> Component.literal(
                 "Moderation GUI: /moderationgui profile <player>, history <player>, "
-                        + "rank list|create|delete|assign|unassign, permission rank|player <target> <node> <grant|deny|remove>, "
+                        + "rank list|create|delete|assign|unassign, kick <player> <reason>, "
+                        + "permission rank|player <target> <node> <grant|deny|remove>, "
                         + "warn <player> <reason>, mute <player> <reason>, "
                         + "ban <player> <reason>, tempban <player> <seconds> <reason>, "
                         + "tempmute <player> <seconds> <reason>, unpunish <id>"), false);
@@ -400,6 +408,29 @@ public final class ModerationCommands {
         }
     }
 
+
+    private static int kickPlayer(CommandSourceStack source, String targetName, String reason) {
+        try {
+            PlayerRepository.Player target = findPlayer(targetName).orElse(null);
+            if (target == null) {
+                source.sendFailure(Component.literal("Player profile not found: " + targetName));
+                return 0;
+            }
+            ServerPlayer online = source.getServer().getPlayerList().getPlayer(UUID.fromString(target.uuid()));
+            if (online == null) {
+                source.sendFailure(Component.literal("Player is not online: " + target.lastName()));
+                return 0;
+            }
+            ModerationGui.moderation().recordAction(actorUuid(source), "PLAYER_KICKED",
+                    target.uuid(), "reason=" + reason, System.currentTimeMillis());
+            online.connection.disconnect(Component.literal("You have been kicked. Reason: " + reason));
+            source.sendSuccess(() -> Component.literal("Kicked " + target.lastName() + "."), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not kick player.", exception);
+        }
+    }
+
     private static int issue(CommandSourceStack source, String targetName,
                              PunishmentRepository.Type type, String reason) {
         try {
@@ -413,12 +444,14 @@ public final class ModerationCommands {
             long id = ModerationGui.moderation().issuePunishment(target.uuid(), target.lastName(),
                     type, reason, actorUuid(source), now, null);
 
-            if (type == PunishmentRepository.Type.BAN) {
-                ServerPlayer online = source.getServer().getPlayerList().getPlayer(UUID.fromString(target.uuid()));
-                if (online != null) {
-                    online.connection.disconnect(Component.literal(
-                            "You are banned from this server. Reason: " + reason));
-                }
+            ServerPlayer online = source.getServer().getPlayerList().getPlayer(UUID.fromString(target.uuid()));
+            if (type == PunishmentRepository.Type.BAN && online != null) {
+                online.connection.disconnect(Component.literal(
+                        "You are banned from this server. Reason: " + reason));
+            } else if (online != null) {
+                online.sendSystemMessage(Component.literal(type == PunishmentRepository.Type.MUTE
+                        ? "You have been muted. Reason: " + reason
+                        : "You received a warning. Reason: " + reason));
             }
 
             source.sendSuccess(() -> Component.literal(
@@ -444,12 +477,14 @@ public final class ModerationCommands {
             long id = ModerationGui.moderation().issuePunishment(target.uuid(), target.lastName(),
                     type, reason, actorUuid(source), now, expiresAt);
 
-            if (type == PunishmentRepository.Type.BAN) {
-                ServerPlayer online = source.getServer().getPlayerList().getPlayer(UUID.fromString(target.uuid()));
-                if (online != null) {
-                    online.connection.disconnect(Component.literal(
-                            "You are temporarily banned from this server. Reason: " + reason));
-                }
+            ServerPlayer online = source.getServer().getPlayerList().getPlayer(UUID.fromString(target.uuid()));
+            if (type == PunishmentRepository.Type.BAN && online != null) {
+                online.connection.disconnect(Component.literal(
+                        "You are temporarily banned from this server. Reason: " + reason));
+            } else if (online != null) {
+                online.sendSystemMessage(Component.literal(
+                        "You have been temporarily muted for " + durationSeconds
+                                + " seconds. Reason: " + reason));
             }
 
             source.sendSuccess(() -> Component.literal(
@@ -474,6 +509,12 @@ public final class ModerationCommands {
             if (!revoked) {
                 source.sendFailure(Component.literal("Punishment is already inactive: #" + punishmentId));
                 return 0;
+            }
+            if (existing.get().type() == PunishmentRepository.Type.MUTE) {
+                ServerPlayer online = source.getServer().getPlayerList()
+                        .getPlayer(UUID.fromString(existing.get().playerUuid()));
+                if (online != null) online.sendSystemMessage(
+                        Component.literal("Your mute has been removed."));
             }
             source.sendSuccess(() -> Component.literal(
                     "Punishment #" + punishmentId + " has been revoked."), true);
