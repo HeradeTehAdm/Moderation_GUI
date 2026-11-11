@@ -83,7 +83,7 @@ public final class ModerationGui implements ModInitializer {
             permissionService = null;
         });
 
-        LOGGER.info("Moderation GUI initialized. Command and client GUI modules are under development.");
+        LOGGER.info("Moderation GUI initialized. Server commands, moderation services and GUI networking are registered.");
     }
 
     public static Database database() {
