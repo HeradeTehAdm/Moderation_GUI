@@ -172,6 +172,18 @@ class StorageRepositoryTest {
     }
 
     @Test
+    void recentPunishmentsSeparatesActiveFromHistoricalEntries() throws Exception {
+        punishments.create("player-uuid", "PlayerOne", PunishmentRepository.Type.MUTE,
+                "Expired mute", "staff-uuid", 100, 200L);
+        punishments.create("player-uuid", "PlayerOne", PunishmentRepository.Type.BAN,
+                "Permanent ban", "staff-uuid", 300, null);
+
+        assertEquals(1, punishments.findRecentActive(20, 400).size());
+        assertEquals(2, punishments.findRecent(20, 400).size());
+        assertFalse(punishments.findRecent(20, 400).getLast().active());
+    }
+
+    @Test
     void punishmentHistoryIncludesRevokedRecords() throws Exception {
         long id = punishments.create("player-uuid", "PlayerOne",
                 PunishmentRepository.Type.WARN, "First warning", "staff-uuid", 100, null);
