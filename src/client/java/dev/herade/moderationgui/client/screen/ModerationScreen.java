@@ -24,8 +24,8 @@ public final class ModerationScreen extends Screen {
 
     @Override
     protected void init() {
-        int buttonWidth = 116;
         int gap = 8;
+        int buttonWidth = Math.max(64, Math.min(116, (this.width - 40 - gap * 3) / 4));
         int totalWidth = buttonWidth * 4 + gap * 3;
         int startX = (this.width - totalWidth) / 2;
         int firstRowY = Math.max(54, this.height / 2 - 74);
