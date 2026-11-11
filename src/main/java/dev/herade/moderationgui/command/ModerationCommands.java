@@ -44,7 +44,7 @@ public final class ModerationCommands {
                         .executes(context -> exportAudit(context.getSource(), 200))
                         .then(Commands.argument("limit", IntegerArgumentType.integer(1, 200))
                                 .executes(context -> exportAudit(context.getSource(),
-                                        IntegerArgumentType.getInteger(context, "limit"))))
+                                        IntegerArgumentType.getInteger(context, "limit"))))))
                 .then(Commands.literal("profile")
                         .requires(source -> canUse(source, "moderation.players.view"))
                         .then(Commands.argument("player", StringArgumentType.word())
