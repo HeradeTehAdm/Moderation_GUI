@@ -26,7 +26,8 @@ public final class AuditExportService {
         }
 
         var entries = activityLog.recent(limit);
-        Path exportDirectory = serverDirectory.resolve("moderation-gui").resolve("exports").normalize();
+        Path serverRoot = serverDirectory.toAbsolutePath().normalize();
+        Path exportDirectory = serverRoot.resolve("moderation-gui").resolve("exports").normalize();
         Files.createDirectories(exportDirectory);
 
         String fileName = "activity-log-" + System.currentTimeMillis()
@@ -48,7 +49,7 @@ public final class AuditExportService {
 
         Path temporary = Files.createTempFile(exportDirectory, ".activity-log-", ".tmp");
         try {
-            Files.writeString(temporary, csv, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.writeString(temporary, csv, StandardCharsets.UTF_8, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             try {
                 Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException exception) {
@@ -58,7 +59,7 @@ public final class AuditExportService {
             Files.deleteIfExists(temporary);
         }
 
-        return new ExportResult(serverDirectory.relativize(target), entries.size());
+        return new ExportResult(serverRoot.relativize(target), entries.size());
     }
 
     private static String cell(String value) {
