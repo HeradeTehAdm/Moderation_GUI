@@ -16,7 +16,12 @@ concurrency:
 
 jobs:
   build:
+    name: Build ${{ matrix.edition }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [free, pro]
     steps:
       - name: Получить исходный код
         uses: actions/checkout@v4
@@ -27,10 +32,17 @@ jobs:
           distribution: temurin
           java-version: '25'
 
-      - name: Настроить Gradle 9.8.2
+      - name: Настроить Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.8.2'
 
-      - name: Собрать мод
-        run: gradle build --no-daemon
+      - name: Собрать и проверить редакцию
+        run: gradle clean build --no-daemon -Pedition=${{ matrix.edition }}
+
+      - name: Сохранить JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: moderation-gui-${{ matrix.edition }}
+          path: build/libs/*.jar
+          if-no-files-found: error
