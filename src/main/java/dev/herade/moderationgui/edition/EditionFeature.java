@@ -7,7 +7,7 @@ public enum EditionFeature {
     RANKS_AND_PERMISSIONS(Edition.FREE, true),
     ACTIVITY_LOG(Edition.FREE, true),
     ADVANCED_ANALYTICS(Edition.PRO, false),
-    AUDIT_EXPORT(Edition.PRO, false),
+    AUDIT_EXPORT(Edition.PRO, true),
     BULK_MODERATION(Edition.PRO, false),
     CUSTOM_GUI_THEMES(Edition.PRO, false);
 
