@@ -240,11 +240,11 @@ public final class ModerationScreen extends Screen {
                     if (this.minecraft.player != null) {
                         this.minecraft.player.connection.sendCommand("moderationgui help");
                     }
-                }).bounds(this.width / 2 - 124, footerY, 120, 26).build());
+                }).bounds(footerStart + footerWidth + footerGap, footerY, footerWidth, 26).build());
 
         addRenderableWidget(Button.builder(Component.literal("Close"),
                 button -> this.onClose())
-                .bounds(this.width / 2 + 4, footerY, 120, 26)
+                .bounds(footerStart + (footerWidth + footerGap) * 2, footerY, footerWidth, 26)
                 .build());
     }
 
