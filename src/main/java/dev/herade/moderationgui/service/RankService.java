@@ -56,6 +56,18 @@ public final class RankService {
         });
     }
 
+
+    public void setParent(long rankId, Long parentRankId, String actorUuid, long timestamp)
+            throws SQLException {
+        inTransaction(() -> {
+            ranks.setParent(rankId, parentRankId);
+            activityLog.record(actorUuid, "RANK_PARENT_UPDATED", null,
+                    "Rank #" + rankId + " parent=" + (parentRankId == null ? "none" : parentRankId),
+                    timestamp);
+            return null;
+        });
+    }
+
     public void update(long rankId, String prefix, String color, int priority,
                        String actorUuid, long timestamp) throws SQLException {
         inTransaction(() -> {
