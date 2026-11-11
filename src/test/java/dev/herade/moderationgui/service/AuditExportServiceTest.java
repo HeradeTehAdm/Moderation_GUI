@@ -40,16 +40,17 @@ class AuditExportServiceTest {
                 "Second action", 200);
 
         AuditExportService.ExportResult result =
-                new AuditExportService(activityLog).export(temporaryDirectory, 1);
+                new AuditExportService(activityLog).export(temporaryDirectory, 2);
 
         Path file = temporaryDirectory.resolve(result.relativePath());
         assertTrue(Files.exists(file));
-        assertEquals(1, result.rows());
+        assertEquals(2, result.rows());
 
         String csv = Files.readString(file, StandardCharsets.UTF_8);
         assertTrue(csv.startsWith("id,created_at,actor_uuid,action,target_uuid,details"));
         assertTrue(csv.contains("PLAYER_KICKED"));
-        assertFalse(csv.contains("PLAYER_WARNED"));
+        assertTrue(csv.contains("PLAYER_WARNED"));
+        assertTrue(csv.contains("\"Spam, repeated \"\"quotes\"\" and details\""));
     }
 
     @Test
