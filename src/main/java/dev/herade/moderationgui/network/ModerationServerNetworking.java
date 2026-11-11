@@ -26,7 +26,6 @@ public final class ModerationServerNetworking {
             long now = System.currentTimeMillis();
             Long previous = LAST_REQUEST_AT.put(player.getUUID(), now);
             if (previous != null && now - previous < REQUEST_INTERVAL_MS) {
-                send(player, payload.section(), "Please wait before refreshing this section.");
                 return;
             }
 
@@ -43,7 +42,7 @@ public final class ModerationServerNetworking {
                 section == null ? "" : section, content));
     }
 
-    private static String limitUtf8(String value, int maxBytes) {
+    static String limitUtf8(String value, int maxBytes) {
         if (value == null) return "";
         if (value.getBytes(StandardCharsets.UTF_8).length <= maxBytes) return value;
 
