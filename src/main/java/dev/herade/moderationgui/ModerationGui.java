@@ -7,6 +7,7 @@ import dev.herade.moderationgui.storage.PlayerRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
 import dev.herade.moderationgui.storage.RankRepository;
 import dev.herade.moderationgui.service.ModerationService;
+import dev.herade.moderationgui.service.RankService;
 import dev.herade.moderationgui.command.ModerationCommands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -24,6 +25,7 @@ public final class ModerationGui implements ModInitializer {
     private static PunishmentRepository punishments;
     private static ActivityLogRepository activityLog;
     private static ModerationService moderation;
+    private static RankService rankService;
 
     @Override
     public void onInitialize() {
@@ -43,6 +45,7 @@ public final class ModerationGui implements ModInitializer {
                 punishments = new PunishmentRepository(database);
                 activityLog = new ActivityLogRepository(database);
                 moderation = new ModerationService(database, punishments, activityLog);
+                rankService = new RankService(database, ranks, activityLog);
 
                 LOGGER.info("Moderation GUI storage and repositories initialized.");
             } catch (Exception exception) {
@@ -65,6 +68,7 @@ public final class ModerationGui implements ModInitializer {
             punishments = null;
             activityLog = null;
             moderation = null;
+            rankService = null;
         });
 
         LOGGER.info("Moderation GUI initialized. Command and client GUI modules are under development.");
@@ -93,6 +97,11 @@ public final class ModerationGui implements ModInitializer {
     public static PunishmentRepository punishments() {
         if (punishments == null) throw new IllegalStateException("Punishment repository is not available before server startup");
         return punishments;
+    }
+
+    public static RankService rankService() {
+        if (rankService == null) throw new IllegalStateException("Rank service is not available before server startup");
+        return rankService;
     }
 
     public static ModerationService moderation() {
