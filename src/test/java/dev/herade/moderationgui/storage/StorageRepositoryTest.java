@@ -134,6 +134,7 @@ class StorageRepositoryTest {
 
         assertEquals(id, punishments.findById(id).orElseThrow().id());
         assertEquals(1, punishments.findHistoryForPlayer("player-uuid", 20).size());
+        assertFalse(punishments.findHistoryForPlayer("player-uuid", 20).getFirst().active());
         assertTrue(punishments.findActiveForPlayer("player-uuid", 200).isEmpty());
     }
 
