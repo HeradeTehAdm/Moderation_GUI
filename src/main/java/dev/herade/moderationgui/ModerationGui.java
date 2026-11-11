@@ -27,6 +27,7 @@ public final class ModerationGui implements ModInitializer {
     @Override
     public void onInitialize() {
         PlayerLifecycleEvents.register();
+        ModerationEnforcementEvents.register();
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             try {
