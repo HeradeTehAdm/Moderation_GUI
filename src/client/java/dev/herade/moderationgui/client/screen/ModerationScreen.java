@@ -415,7 +415,7 @@ public final class ModerationScreen extends Screen {
     }
 
     private void requestSection() {
-        if (this.minecraft.player != null && this.minecraft.getConnection() != null) {
+        if (this.minecraft.player != null) {
             content = "Refreshing data from server...";
             if (contentWidget != null) contentWidget.setMessage(Component.literal(content));
             ClientPlayNetworking.send(new RequestSectionPayload(selectedSection));
