@@ -6,7 +6,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.herade.moderationgui.ModerationGui;
 import dev.herade.moderationgui.storage.PlayerRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
-import dev.herade.moderationgui.service.ModerationService;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -30,7 +29,6 @@ public final class ModerationCommands {
 
     private static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("moderationgui")
-                .requires(source -> canUse(source, "moderation.access"))
                 .executes(context -> showHelp(context.getSource()))
                 .then(Commands.literal("help")
                         .executes(context -> showHelp(context.getSource())))
@@ -135,7 +133,8 @@ public final class ModerationCommands {
                     "Punishment history for " + player.lastName() + " (" + history.size() + " records):"), false);
             history.forEach(entry -> source.sendSuccess(() -> Component.literal(
                     "#" + entry.id() + " " + entry.type() + " | " + entry.reason()
-                            + " | " + (entry.expiresAt() == null ? "Permanent" : "Expires: " + entry.expiresAt())), false));
+                            + " | " + (entry.expiresAt() == null ? "Permanent" : "Expires: " + entry.expiresAt())
+                            + " | " + (entry.active() ? "Active" : "Inactive")), false));
             return history.size();
         } catch (SQLException exception) {
             return reportFailure(source, "Could not load punishment history.", exception);
