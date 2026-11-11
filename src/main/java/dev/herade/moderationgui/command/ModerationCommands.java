@@ -68,6 +68,26 @@ public final class ModerationCommands {
                                                 StringArgumentType.getString(context, "player"),
                                                 PunishmentRepository.Type.BAN,
                                                 StringArgumentType.getString(context, "reason"))))))
+                .then(Commands.literal("tempban")
+                        .requires(source -> canUse(source, "moderation.tempban"))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                                .then(Commands.argument("seconds", LongArgumentType.longArg(1, 31536000))
+                                        .then(Commands.argument("reason", StringArgumentType.greedyString())
+                                                .executes(context -> issueTemporary(context.getSource(),
+                                                        StringArgumentType.getString(context, "player"),
+                                                        PunishmentRepository.Type.BAN,
+                                                        LongArgumentType.getLong(context, "seconds"),
+                                                        StringArgumentType.getString(context, "reason")))))))
+                .then(Commands.literal("tempmute")
+                        .requires(source -> canUse(source, "moderation.tempmute"))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                                .then(Commands.argument("seconds", LongArgumentType.longArg(1, 31536000))
+                                        .then(Commands.argument("reason", StringArgumentType.greedyString())
+                                                .executes(context -> issueTemporary(context.getSource(),
+                                                        StringArgumentType.getString(context, "player"),
+                                                        PunishmentRepository.Type.MUTE,
+                                                        LongArgumentType.getLong(context, "seconds"),
+                                                        StringArgumentType.getString(context, "reason")))))))
                 .then(Commands.literal("unpunish")
                         .requires(source -> canUse(source, "moderation.punishments.revoke"))
                         .then(Commands.argument("id", LongArgumentType.longArg(1))
@@ -79,7 +99,8 @@ public final class ModerationCommands {
         source.sendSuccess(() -> Component.literal(
                 "Moderation GUI: /moderationgui profile <player>, history <player>, "
                         + "warn <player> <reason>, mute <player> <reason>, "
-                        + "ban <player> <reason>, unpunish <id>"), false);
+                        + "ban <player> <reason>, tempban <player> <seconds> <reason>, "
+                        + "tempmute <player> <seconds> <reason>, unpunish <id>"), false);
         return 1;
     }
 
@@ -147,6 +168,38 @@ public final class ModerationCommands {
             return 1;
         } catch (SQLException | IllegalArgumentException exception) {
             return reportFailure(source, "Could not issue punishment.", exception);
+        }
+    }
+
+
+    private static int issueTemporary(CommandSourceStack source, String targetName,
+                                      PunishmentRepository.Type type, long durationSeconds, String reason) {
+        try {
+            PlayerRepository.Player target = findPlayer(targetName).orElse(null);
+            if (target == null) {
+                source.sendFailure(Component.literal(
+                        "Player profile not found. The player must have joined this server at least once."));
+                return 0;
+            }
+            long now = System.currentTimeMillis();
+            long expiresAt = Math.addExact(now, Math.multiplyExact(durationSeconds, 1000L));
+            long id = ModerationGui.moderation().issuePunishment(target.uuid(), target.lastName(),
+                    type, reason, actorUuid(source), now, expiresAt);
+
+            if (type == PunishmentRepository.Type.BAN) {
+                ServerPlayer online = source.getServer().getPlayerList().getPlayer(UUID.fromString(target.uuid()));
+                if (online != null) {
+                    online.connection.disconnect(Component.literal(
+                            "You are temporarily banned from this server. Reason: " + reason));
+                }
+            }
+
+            source.sendSuccess(() -> Component.literal(
+                    type + " issued to " + target.lastName() + " for " + durationSeconds
+                            + " seconds. Punishment ID: #" + id), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException | ArithmeticException exception) {
+            return reportFailure(source, "Could not issue temporary punishment.", exception);
         }
     }
 
