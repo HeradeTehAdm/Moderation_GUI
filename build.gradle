@@ -22,7 +22,7 @@ tasks.register('generateEditionMetadata') {
     doLast {
         def metadataFile = generatedEditionResources.get().file('moderation-gui-edition.properties').asFile
         metadataFile.parentFile.mkdirs()
-        metadataFile.text = "edition=${moderationEdition}\\n"
+        metadataFile.text = "edition=${moderationEdition}\n"
     }
 }
 
