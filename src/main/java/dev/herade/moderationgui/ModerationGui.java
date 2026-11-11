@@ -1,6 +1,8 @@
 package dev.herade.moderationgui;
 
 import dev.herade.moderationgui.storage.ActivityLogRepository;
+import dev.herade.moderationgui.network.ModerationNetworking;
+import dev.herade.moderationgui.network.ModerationServerNetworking;
 import dev.herade.moderationgui.storage.Database;
 import dev.herade.moderationgui.storage.PermissionRepository;
 import dev.herade.moderationgui.storage.PlayerRepository;
@@ -28,9 +30,11 @@ public final class ModerationGui implements ModInitializer {
     private static ModerationService moderation;
     private static RankService rankService;
     private static PermissionService permissionService;
+    private static boolean serverNetworkingRegistered;
 
     @Override
     public void onInitialize() {
+        ModerationNetworking.registerPayloadTypes();
         PlayerLifecycleEvents.register();
         ModerationEnforcementEvents.register();
         ModerationCommands.register();
@@ -49,6 +53,10 @@ public final class ModerationGui implements ModInitializer {
                 moderation = new ModerationService(database, punishments, activityLog);
                 rankService = new RankService(database, ranks, activityLog);
                 permissionService = new PermissionService(database, permissions, activityLog);
+                if (!serverNetworkingRegistered) {
+                    ModerationServerNetworking.register();
+                    serverNetworkingRegistered = true;
+                }
 
                 LOGGER.info("Moderation GUI storage and repositories initialized.");
             } catch (Exception exception) {
