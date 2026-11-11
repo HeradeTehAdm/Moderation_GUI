@@ -61,7 +61,8 @@ public final class ModerationScreen extends Screen {
                 Component.literal(content),
                 this.font
         ).setMaxWidth(Math.max(120, this.width - 60))
-         .setMaxRows(Math.max(2, Math.min(8, (this.height - contentY - 52) / 10)));
+         .setMaxRows(selectedSection.equals("Punishments")
+                 ? 3 : Math.max(2, Math.min(8, (this.height - contentY - 52) / 10)));
         addRenderableWidget(contentWidget);
 
         if (this.minecraft.player != null) {
@@ -73,8 +74,8 @@ public final class ModerationScreen extends Screen {
 
 
         if (selectedSection.equals("Punishments")) {
-            if (this.height >= 360) {
-                int formY = contentY + 66;
+            if (this.height >= 400) {
+                int formY = contentY + 44;
                 int fieldGap = 8;
                 int fieldWidth = Math.max(90, Math.min(180, (this.width - 60 - fieldGap * 2) / 3));
                 int fieldsWidth = fieldWidth * 3 + fieldGap * 2;
@@ -134,7 +135,7 @@ public final class ModerationScreen extends Screen {
             }
         }
 
-        int footerY = this.height - 36;
+        int footerY = this.height - 28;
         addRenderableWidget(Button.builder(Component.literal("Command Help"),
                 button -> {
                     if (this.minecraft.player != null) {
