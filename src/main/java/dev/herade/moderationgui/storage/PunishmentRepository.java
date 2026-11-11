@@ -76,10 +76,7 @@ public final class PunishmentRepository {
                 while (result.next()) {
                     long expiry = result.getLong("expires_at");
                     Long expiresAt = result.wasNull() ? null : expiry;
-                    punishments.add(new Punishment(result.getLong("id"), result.getString("player_uuid"),
-                            result.getString("player_name"), Type.valueOf(result.getString("type")),
-                            result.getString("reason"), result.getString("moderator_uuid"),
-                            result.getLong("created_at"), expiresAt));
+                    punishments.add(mapPunishment(result));
                 }
             }
         }
@@ -93,7 +90,7 @@ public final class PunishmentRepository {
         }
         List<Punishment> history = new ArrayList<>();
         try (PreparedStatement statement = database.connection().prepareStatement("""
-                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at
+                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at, active
                 FROM punishments
                 WHERE player_uuid = ?
                 ORDER BY created_at DESC, id DESC
@@ -110,7 +107,7 @@ public final class PunishmentRepository {
 
     public java.util.Optional<Punishment> findById(long punishmentId) throws SQLException {
         try (PreparedStatement statement = database.connection().prepareStatement("""
-                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at
+                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at, active
                 FROM punishments WHERE id = ?
                 """)) {
             statement.setLong(1, punishmentId);
@@ -128,7 +125,7 @@ public final class PunishmentRepository {
         return new Punishment(result.getLong("id"), result.getString("player_uuid"),
                 result.getString("player_name"), Type.valueOf(result.getString("type")),
                 result.getString("reason"), result.getString("moderator_uuid"),
-                result.getLong("created_at"), expiresAt);
+                result.getLong("created_at"), expiresAt, result.getInt("active") == 1);
     }
 
     private static String requireText(String value, String field, int maxLength) {
@@ -141,5 +138,5 @@ public final class PunishmentRepository {
     public enum Type { BAN, MUTE, WARN }
 
     public record Punishment(long id, String playerUuid, String playerName, Type type, String reason,
-                             String moderatorUuid, long createdAt, Long expiresAt) { }
+                             String moderatorUuid, long createdAt, Long expiresAt, boolean active) { }
 }
