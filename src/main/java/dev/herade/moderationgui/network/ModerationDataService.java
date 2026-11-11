@@ -28,7 +28,8 @@ public final class ModerationDataService {
                 case "Ranks" -> loadRanks();
                 case "Permissions" -> loadPermissions(viewer);
                 case "Punishments" -> loadPunishments();
-                case "History", "Activity Log" -> loadActivity();
+                case "History" -> loadHistory();
+                case "Activity Log" -> loadActivity();
                 case "Settings" -> List.of(
                         "Storage: SQLite",
                         "Permission checks: server-authoritative",
@@ -85,6 +86,18 @@ public final class ModerationDataService {
     private static List<String> loadPunishments() throws SQLException {
         List<String> rows = new ArrayList<>();
         for (PunishmentRepository.Punishment punishment :
+                ModerationGui.punishments().findRecentActive(50, System.currentTimeMillis())) {
+            rows.add("#" + punishment.id() + " " + punishment.type()
+                    + " | " + punishment.playerName()
+                    + " | " + (punishment.active() ? "Active" : "Inactive")
+                    + " | " + safe(punishment.reason()));
+        }
+        return rows;
+    }
+
+    private static List<String> loadHistory() throws SQLException {
+        List<String> rows = new ArrayList<>();
+        for (PunishmentRepository.Punishment punishment :
                 ModerationGui.punishments().findRecent(50, System.currentTimeMillis())) {
             rows.add("#" + punishment.id() + " " + punishment.type()
                     + " | " + punishment.playerName()
@@ -109,7 +122,7 @@ public final class ModerationDataService {
             case "Players" -> "moderation.players.view";
             case "Ranks" -> "moderation.ranks.view";
             case "Permissions" -> "moderation.permissions.view";
-            case "Punishments" -> "moderation.history.view";
+            case "Punishments" -> "moderation.punishments.view";
             case "History" -> "moderation.history.view";
             case "Settings" -> "moderation.settings.view";
             case "Activity Log" -> "moderation.activity.view";
