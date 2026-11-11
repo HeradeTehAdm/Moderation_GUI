@@ -23,13 +23,24 @@ public final class PlayerRepository {
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT(uuid) DO UPDATE SET
                     last_name = excluded.last_name,
-                    last_seen_at = excluded.last_seen_at
+                    last_seen_at = MAX(players.last_seen_at, excluded.last_seen_at)
                 """)) {
             statement.setString(1, playerId);
             statement.setString(2, name);
             statement.setLong(3, timestamp);
             statement.setLong(4, timestamp);
             statement.executeUpdate();
+        }
+    }
+
+    public void updateLastSeen(String uuid, long timestamp) throws SQLException {
+        try (PreparedStatement statement = database.connection().prepareStatement(
+                "UPDATE players SET last_seen_at = MAX(last_seen_at, ?) WHERE uuid = ?")) {
+            statement.setLong(1, timestamp);
+            statement.setString(2, requireUuid(uuid));
+            if (statement.executeUpdate() == 0) {
+                throw new IllegalArgumentException("Player profile does not exist");
+            }
         }
     }
 
