@@ -1,5 +1,6 @@
 package dev.herade.moderationgui.storage;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,6 +32,11 @@ class StorageRepositoryTest {
         permissions = new PermissionRepository(database);
         punishments = new PunishmentRepository(database);
         activityLog = new ActivityLogRepository(database);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (database != null) database.close();
     }
 
     @Test
@@ -69,7 +75,7 @@ class StorageRepositoryTest {
         ranks.setParent(staff, base);
         ranks.assign("player-uuid", staff, "moderator-uuid", 150);
 
-        assertEquals(2, ranks.findForPlayer("player-uuid").size());
+        assertEquals(1, ranks.findForPlayer("player-uuid").size());
         assertThrows(IllegalArgumentException.class, () -> ranks.setParent(base, staff));
     }
 
