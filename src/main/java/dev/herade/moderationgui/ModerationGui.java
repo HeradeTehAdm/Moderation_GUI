@@ -26,6 +26,8 @@ public final class ModerationGui implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        PlayerLifecycleEvents.register();
+
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             try {
                 database = new Database(server.getServerDirectory()
