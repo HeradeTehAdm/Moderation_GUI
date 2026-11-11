@@ -2,6 +2,7 @@ package dev.herade.moderationgui.storage;
 
 import dev.herade.moderationgui.service.ModerationService;
 import dev.herade.moderationgui.service.RankService;
+import dev.herade.moderationgui.service.PermissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -174,6 +175,26 @@ class StorageRepositoryTest {
         assertEquals(0, punishments.findActiveForPlayer("player-uuid", 400).size());
         assertEquals("PUNISHMENT_REVOKED", activityLog.recent(1).getFirst().action());
         assertEquals("player-uuid", activityLog.recent(1).getFirst().targetUuid());
+    }
+
+    @Test
+    void permissionServiceAuditsGrantDenyAndRemoval() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 100);
+        long rankId = ranks.create("Moderator", "", "gold", 50);
+        PermissionService service = new PermissionService(database, permissions, activityLog);
+
+        service.setRankRule(rankId, "moderation.*", true, "staff-uuid", 200);
+        service.setPlayerRule("player-uuid", "moderation.ban", false, "staff-uuid", 210);
+        ranks.assign("player-uuid", rankId, "staff-uuid", 220);
+
+        assertTrue(permissions.hasPermission("player-uuid", "moderation.kick"));
+        assertFalse(permissions.hasPermission("player-uuid", "moderation.ban"));
+        assertEquals(1, permissions.findRankPermissions(rankId).size());
+        assertEquals(1, permissions.findPlayerPermissions("player-uuid").size());
+
+        assertTrue(service.removePlayerRule("player-uuid", "moderation.ban", "staff-uuid", 230));
+        assertTrue(permissions.hasPermission("player-uuid", "moderation.ban"));
+        assertEquals("PLAYER_PERMISSION_REMOVED", activityLog.recent(1).getFirst().action());
     }
 
     @Test
