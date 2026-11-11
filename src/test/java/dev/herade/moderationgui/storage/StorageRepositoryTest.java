@@ -134,6 +134,20 @@ class StorageRepositoryTest {
     }
 
     @Test
+    void directRankRuleWinsOverInheritedRuleAtSameSpecificity() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 100);
+        long parent = ranks.create("Parent", "", "white", 1000);
+        long child = ranks.create("Child", "", "gold", 5);
+        ranks.setParent(child, parent);
+        ranks.assign("player-uuid", child, "staff-uuid", 150);
+
+        permissions.setRankPermission(parent, "moderation.kick", true);
+        permissions.setRankPermission(child, "moderation.kick", false);
+
+        assertFalse(permissions.hasPermission("player-uuid", "moderation.kick"));
+    }
+
+    @Test
     void permissionNodesRejectMalformedInput() {
         assertThrows(IllegalArgumentException.class,
                 () -> permissions.setRankPermission(1, "moderation..ban", true));
