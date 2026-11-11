@@ -37,14 +37,14 @@ public final class AuditExportService {
             throw new IOException("Invalid export destination");
         }
 
-        StringBuilder csv = new StringBuilder("id,created_at,actor_uuid,action,target_uuid,details\n");
+        StringBuilder csv = new StringBuilder("\uFEFFid,created_at,actor_uuid,action,target_uuid,details\r\n");
         for (ActivityLogRepository.Entry entry : entries) {
             csv.append(entry.id()).append(',')
                     .append(cell(Instant.ofEpochMilli(entry.createdAt()).toString())).append(',')
                     .append(cell(entry.actorUuid())).append(',')
                     .append(cell(entry.action())).append(',')
                     .append(cell(entry.targetUuid())).append(',')
-                    .append(cell(entry.details())).append('\n');
+                    .append(cell(entry.details())).append("\r\n");
         }
 
         Path temporary = Files.createTempFile(exportDirectory, ".activity-log-", ".tmp");
@@ -64,6 +64,14 @@ public final class AuditExportService {
 
     private static String cell(String value) {
         String safe = value == null ? "" : value;
+        int firstVisible = 0;
+        while (firstVisible < safe.length() && safe.charAt(firstVisible) <= ' ') {
+            firstVisible++;
+        }
+        if (firstVisible < safe.length()
+                && "=+-@".indexOf(safe.charAt(firstVisible)) >= 0) {
+            safe = "'" + safe;
+        }
         return "\"" + safe.replace("\"", "\"\"") + "\"";
     }
 
