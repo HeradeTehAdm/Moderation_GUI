@@ -39,6 +39,15 @@ public final class ModerationService {
         });
     }
 
+
+    public void recordAction(String moderatorUuid, String action, String targetUuid,
+                             String details, long timestamp) throws SQLException {
+        inTransaction(() -> {
+            activityLog.record(moderatorUuid, action, targetUuid, details, timestamp);
+            return null;
+        });
+    }
+
     public boolean revokePunishment(long punishmentId, String moderatorUuid, long timestamp) throws SQLException {
         return inTransaction(() -> {
             Optional<PunishmentRepository.Punishment> existing = punishments.findById(punishmentId);
