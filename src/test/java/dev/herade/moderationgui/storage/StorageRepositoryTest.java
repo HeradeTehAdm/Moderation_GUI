@@ -69,6 +69,16 @@ class StorageRepositoryTest {
     }
 
     @Test
+    void lastSeenTimestampNeverMovesBackwards() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 500);
+        players.updateLastSeen("player-uuid", 700);
+        players.updateLastSeen("player-uuid", 600);
+
+        PlayerRepository.Player player = players.findByUuid("player-uuid").orElseThrow();
+        assertEquals(700, player.lastSeenAt());
+    }
+
+    @Test
     void rankInheritanceRejectsCyclesAndAssignsRanks() throws Exception {
         players.recordJoin("player-uuid", "PlayerOne", 100);
         long base = ranks.create("Member", "[M]", "green", 10);
