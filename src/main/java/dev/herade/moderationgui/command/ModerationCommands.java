@@ -1,6 +1,7 @@
 package dev.herade.moderationgui.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.herade.moderationgui.ModerationGui;
@@ -42,6 +43,41 @@ public final class ModerationCommands {
                         .then(Commands.argument("player", StringArgumentType.word())
                                 .executes(context -> showHistory(context.getSource(),
                                         StringArgumentType.getString(context, "player")))))
+                .then(Commands.literal("rank")
+                        .then(Commands.literal("list")
+                                .requires(source -> canUse(source, "moderation.ranks.view"))
+                                .executes(context -> listRanks(context.getSource())))
+                        .then(Commands.literal("create")
+                                .requires(source -> canUse(source, "moderation.ranks.create"))
+                                .then(Commands.argument("name", StringArgumentType.word())
+                                        .then(Commands.argument("priority", IntegerArgumentType.integer())
+                                                .then(Commands.argument("prefix", StringArgumentType.word())
+                                                        .then(Commands.argument("color", StringArgumentType.word())
+                                                                .executes(context -> createRank(context.getSource(),
+                                                                        StringArgumentType.getString(context, "name"),
+                                                                        IntegerArgumentType.getInteger(context, "priority"),
+                                                                        StringArgumentType.getString(context, "prefix"),
+                                                                        StringArgumentType.getString(context, "color"))))))))
+                        .then(Commands.literal("delete")
+                                .requires(source -> canUse(source, "moderation.ranks.delete"))
+                                .then(Commands.argument("name", StringArgumentType.word())
+                                        .executes(context -> deleteRank(context.getSource(),
+                                                StringArgumentType.getString(context, "name")))))
+                        .then(Commands.literal("assign")
+                                .requires(source -> canUse(source, "moderation.ranks.assign"))
+                                .then(Commands.argument("player", StringArgumentType.word())
+                                        .then(Commands.argument("rank", StringArgumentType.word())
+                                                .executes(context -> assignRank(context.getSource(),
+                                                        StringArgumentType.getString(context, "player"),
+                                                        StringArgumentType.getString(context, "rank"))))))
+                        .then(Commands.literal("unassign")
+                                .requires(source -> canUse(source, "moderation.ranks.assign"))
+                                .then(Commands.argument("player", StringArgumentType.word())
+                                        .then(Commands.argument("rank", StringArgumentType.word())
+                                                .executes(context -> unassignRank(context.getSource(),
+                                                        StringArgumentType.getString(context, "player"),
+                                                        StringArgumentType.getString(context, "rank"))))))
+                )
                 .then(Commands.literal("warn")
                         .requires(source -> canUse(source, "moderation.warn"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -93,9 +129,99 @@ public final class ModerationCommands {
                                         LongArgumentType.getLong(context, "id"))))));
     }
 
+
+    private static int listRanks(CommandSourceStack source) {
+        try {
+            var ranks = ModerationGui.ranks().findAll();
+            source.sendSuccess(() -> Component.literal("Ranks (" + ranks.size() + "):"), false);
+            ranks.forEach(rank -> source.sendSuccess(() -> Component.literal(
+                    "#" + rank.id() + " " + rank.name() + " | priority=" + rank.priority()
+                            + " | prefix=" + (rank.prefix().isBlank() ? "None" : rank.prefix())
+                            + " | color=" + rank.color()
+                            + " | parent=" + (rank.parentRankId() == null ? "None" : rank.parentRankId())), false));
+            return ranks.size();
+        } catch (SQLException exception) {
+            return reportFailure(source, "Could not load ranks.", exception);
+        }
+    }
+
+    private static int createRank(CommandSourceStack source, String name, int priority,
+                                  String prefix, String color) {
+        try {
+            long id = ModerationGui.rankService().create(name,
+                    prefix.equals("-") ? "" : prefix, color, priority,
+                    actorUuid(source), System.currentTimeMillis());
+            source.sendSuccess(() -> Component.literal("Rank " + name + " created. ID: #" + id), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not create rank.", exception);
+        }
+    }
+
+    private static int deleteRank(CommandSourceStack source, String name) {
+        try {
+            var rank = ModerationGui.ranks().findByName(name);
+            if (rank.isEmpty()) {
+                source.sendFailure(Component.literal("Rank not found: " + name));
+                return 0;
+            }
+            boolean deleted = ModerationGui.rankService().delete(
+                    rank.get().id(), actorUuid(source), System.currentTimeMillis());
+            if (!deleted) {
+                source.sendFailure(Component.literal("Rank could not be deleted: " + name));
+                return 0;
+            }
+            source.sendSuccess(() -> Component.literal("Rank " + name + " deleted."), true);
+            return 1;
+        } catch (SQLException exception) {
+            return reportFailure(source, "Could not delete rank.", exception);
+        }
+    }
+
+    private static int assignRank(CommandSourceStack source, String playerName, String rankName) {
+        try {
+            PlayerRepository.Player player = findPlayer(playerName).orElse(null);
+            var rank = ModerationGui.ranks().findByName(rankName);
+            if (player == null || rank.isEmpty()) {
+                source.sendFailure(Component.literal("Player profile or rank not found."));
+                return 0;
+            }
+            ModerationGui.rankService().assign(player.uuid(), rank.get().id(),
+                    actorUuid(source), System.currentTimeMillis());
+            source.sendSuccess(() -> Component.literal(
+                    "Rank " + rank.get().name() + " assigned to " + player.lastName() + "."), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not assign rank.", exception);
+        }
+    }
+
+    private static int unassignRank(CommandSourceStack source, String playerName, String rankName) {
+        try {
+            PlayerRepository.Player player = findPlayer(playerName).orElse(null);
+            var rank = ModerationGui.ranks().findByName(rankName);
+            if (player == null || rank.isEmpty()) {
+                source.sendFailure(Component.literal("Player profile or rank not found."));
+                return 0;
+            }
+            boolean removed = ModerationGui.rankService().unassign(player.uuid(), rank.get().id(),
+                    actorUuid(source), System.currentTimeMillis());
+            if (!removed) {
+                source.sendFailure(Component.literal("That rank is not assigned to this player."));
+                return 0;
+            }
+            source.sendSuccess(() -> Component.literal(
+                    "Rank " + rank.get().name() + " removed from " + player.lastName() + "."), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not unassign rank.", exception);
+        }
+    }
+
     private static int showHelp(CommandSourceStack source) {
         source.sendSuccess(() -> Component.literal(
                 "Moderation GUI: /moderationgui profile <player>, history <player>, "
+                        + "rank list|create|delete|assign|unassign, "
                         + "warn <player> <reason>, mute <player> <reason>, "
                         + "ban <player> <reason>, tempban <player> <seconds> <reason>, "
                         + "tempmute <player> <seconds> <reason>, unpunish <id>"), false);
