@@ -148,6 +148,30 @@ class StorageRepositoryTest {
     }
 
     @Test
+    void rankParentChangesAreAudited() throws Exception {
+        long parent = ranks.create("Parent", "", "white", 10);
+        long child = ranks.create("Child", "", "gold", 20);
+        RankService service = new RankService(database, ranks, activityLog);
+
+        service.setParent(child, parent, "staff-uuid", 300);
+
+        assertEquals(parent, ranks.findByName("Child").orElseThrow().parentRankId());
+        assertEquals("RANK_PARENT_UPDATED", activityLog.recent(1).getFirst().action());
+    }
+
+    @Test
+    void playerNotesChangesAreAudited() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 100);
+        ModerationService service = new ModerationService(database, punishments, activityLog);
+
+        service.updatePlayerNotes("player-uuid", "Needs follow-up", "staff-uuid", 300);
+
+        assertEquals("Needs follow-up", players.findByUuid("player-uuid").orElseThrow().notes());
+        assertEquals("PLAYER_NOTES_UPDATED", activityLog.recent(1).getFirst().action());
+        assertEquals("player-uuid", activityLog.recent(1).getFirst().targetUuid());
+    }
+
+    @Test
     void punishmentHistoryIncludesRevokedRecords() throws Exception {
         long id = punishments.create("player-uuid", "PlayerOne",
                 PunishmentRepository.Type.WARN, "First warning", "staff-uuid", 100, null);
