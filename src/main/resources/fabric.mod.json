@@ -8,7 +8,8 @@
   "license": "MIT",
   "environment": "*",
   "entrypoints": {
-    "main": ["dev.herade.moderationgui.ModerationGui"]
+    "main": ["dev.herade.moderationgui.ModerationGui"],
+    "client": ["dev.herade.moderationgui.client.ModerationGuiClient"]
   },
   "depends": {
     "fabricloader": ">=0.20.1",
