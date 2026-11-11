@@ -7,6 +7,7 @@
 | Команда | Назначение |
 |---|---|
 | `/moderationgui edition` | Показать редакцию JAR и матрицу доступных возможностей |
+| `/moderationgui export [limit]` | Pro: экспортировать до 200 последних записей Activity Log в CSV; по умолчанию 200 |
 
 ## Профили и история
 
@@ -83,6 +84,7 @@
 - `moderation.ranks.assign`
 - `moderation.ranks.edit`
 - `moderation.activity.view`
+- `moderation.export` (только Pro)
 - `moderation.settings.view`
 - `moderation.permissions.view`
 - `moderation.permissions.manage`
