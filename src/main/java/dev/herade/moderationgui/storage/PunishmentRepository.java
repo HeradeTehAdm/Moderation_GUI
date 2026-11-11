@@ -16,6 +16,7 @@ public final class PunishmentRepository {
 
     public long create(String playerUuid, String playerName, Type type, String reason,
                        String moderatorUuid, long createdAt, Long expiresAt) throws SQLException {
+        if (type == null) throw new IllegalArgumentException("Punishment type cannot be null");
         String targetId = requireText(playerUuid, "playerUuid", 36);
         String targetName = requireText(playerName, "playerName", 16);
         String actorId = requireText(moderatorUuid, "moderatorUuid", 36);
@@ -83,6 +84,51 @@ public final class PunishmentRepository {
             }
         }
         return List.copyOf(punishments);
+    }
+
+    /** Возвращает историю наказаний игрока, включая снятые и истёкшие записи. */
+    public List<Punishment> findHistoryForPlayer(String playerUuid, int limit) throws SQLException {
+        if (limit < 1 || limit > 200) {
+            throw new IllegalArgumentException("limit must be between 1 and 200");
+        }
+        List<Punishment> history = new ArrayList<>();
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at
+                FROM punishments
+                WHERE player_uuid = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """)) {
+            statement.setString(1, requireText(playerUuid, "playerUuid", 36));
+            statement.setInt(2, limit);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) history.add(mapPunishment(result));
+            }
+        }
+        return List.copyOf(history);
+    }
+
+    public java.util.Optional<Punishment> findById(long punishmentId) throws SQLException {
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at
+                FROM punishments WHERE id = ?
+                """)) {
+            statement.setLong(1, punishmentId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next()
+                        ? java.util.Optional.of(mapPunishment(result))
+                        : java.util.Optional.empty();
+            }
+        }
+    }
+
+    private static Punishment mapPunishment(ResultSet result) throws SQLException {
+        long expiry = result.getLong("expires_at");
+        Long expiresAt = result.wasNull() ? null : expiry;
+        return new Punishment(result.getLong("id"), result.getString("player_uuid"),
+                result.getString("player_name"), Type.valueOf(result.getString("type")),
+                result.getString("reason"), result.getString("moderator_uuid"),
+                result.getLong("created_at"), expiresAt);
     }
 
     private static String requireText(String value, String field, int maxLength) {
