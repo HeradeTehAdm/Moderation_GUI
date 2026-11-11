@@ -4,9 +4,27 @@ plugins {
 }
 
 group = project.maven_group
-version = project.mod_version
+def moderationEdition = providers.gradleProperty('edition').getOrElse('free').toLowerCase(Locale.ROOT)
+if (!(moderationEdition in ['free', 'pro'])) {
+    throw new GradleException("Unknown edition '${moderationEdition}'. Use -Pedition=free or -Pedition=pro.")
+}
 
-base { archivesName = project.archives_base_name }
+version = "${project.mod_version}-${moderationEdition}"
+
+base { archivesName = "${project.archives_base_name}-${moderationEdition}" }
+
+def generatedEditionResources = layout.buildDirectory.dir('generated/moderationEditionResources')
+
+sourceSets.main.resources.srcDir(generatedEditionResources)
+
+tasks.register('generateEditionMetadata') {
+    outputs.dir(generatedEditionResources)
+    doLast {
+        def metadataFile = generatedEditionResources.get().file('moderation-gui-edition.properties').asFile
+        metadataFile.parentFile.mkdirs()
+        metadataFile.text = "edition=${moderationEdition}\\n"
+    }
+}
 
 loom {
     splitEnvironmentSourceSets()
@@ -44,7 +62,9 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 processResources {
+    dependsOn tasks.named('generateEditionMetadata')
     inputs.property 'version', project.version
+    inputs.property 'edition', moderationEdition
     filesMatching('fabric.mod.json') { expand 'version': project.version }
 }
 
