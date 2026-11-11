@@ -20,9 +20,10 @@ public final class ModerationDataService {
         String section = requestedSection == null ? "" : requestedSection.trim();
         String permission = requiredPermission(section);
         if (permission == null) return "Unknown section.";
-        if (!hasAccess(viewer, permission)) return "Access denied. Required permission: " + permission;
-
         try {
+            if (!hasAccess(viewer, permission)) {
+                return "Access denied. Required permission: " + permission;
+            }
             List<String> rows = switch (section) {
                 case "Players" -> loadPlayers();
                 case "Ranks" -> loadRanks();
