@@ -153,6 +153,7 @@ class StorageRepositoryTest {
         assertTrue(service.revokePunishment(punishmentId, "staff-uuid", 400));
         assertEquals(0, punishments.findActiveForPlayer("player-uuid", 400).size());
         assertEquals("PUNISHMENT_REVOKED", activityLog.recent(1).getFirst().action());
+        assertEquals("player-uuid", activityLog.recent(1).getFirst().targetUuid());
     }
 
     @Test
