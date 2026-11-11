@@ -57,14 +57,12 @@ public final class Database implements AutoCloseable {
     }
 
     @Override
-    public synchronized void close() {
+    public synchronized void close() throws SQLException {
         if (connection == null) {
             return;
         }
         try {
             connection.close();
-        } catch (SQLException exception) {
-            // Shutdown must continue; the original failure is reported to the logger by the caller.
         } finally {
             connection = null;
         }
