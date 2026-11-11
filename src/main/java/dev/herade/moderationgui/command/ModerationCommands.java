@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.herade.moderationgui.ModerationGui;
 import dev.herade.moderationgui.edition.EditionManager;
+import dev.herade.moderationgui.edition.EditionFeature;
 import dev.herade.moderationgui.storage.PlayerRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
 import dev.herade.moderationgui.storage.RankRepository;
@@ -37,6 +38,13 @@ public final class ModerationCommands {
                         .executes(context -> showHelp(context.getSource())))
                 .then(Commands.literal("edition")
                         .executes(context -> showEdition(context.getSource())))
+                .then(Commands.literal("export")
+                        .requires(source -> canUse(source, "moderation.export")
+                                && EditionManager.has(EditionFeature.AUDIT_EXPORT))
+                        .executes(context -> exportAudit(context.getSource(), 200))
+                        .then(Commands.argument("limit", IntegerArgumentType.integer(1, 200))
+                                .executes(context -> exportAudit(context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "limit"))))
                 .then(Commands.literal("profile")
                         .requires(source -> canUse(source, "moderation.players.view"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -391,6 +399,23 @@ public final class ModerationCommands {
     }
 
 
+
+    private static int exportAudit(CommandSourceStack source, int limit) {
+        try {
+            EditionManager.require(EditionFeature.AUDIT_EXPORT);
+            AuditExportService.ExportResult result = new AuditExportService(
+                    ModerationGui.activityLog()).export(
+                    source.getServer().getServerDirectory(), limit);
+            source.sendSuccess(() -> Component.literal(
+                    "Exported " + result.rows() + " activity records to "
+                            + result.relativePath().toString().replace('\\\\', '/')), true);
+            return result.rows();
+        } catch (java.sql.SQLException | java.io.IOException | IllegalArgumentException
+                 | EditionManager.FeatureUnavailableException exception) {
+            return reportFailure(source, "Could not export the activity log.", exception);
+        }
+    }
+
     private static int showEdition(CommandSourceStack source) {
         var edition = EditionManager.current();
         var features = EditionManager.availableFeatures();
@@ -412,7 +437,7 @@ public final class ModerationCommands {
 
     private static int showHelp(CommandSourceStack source) {
         source.sendSuccess(() -> Component.literal(
-                "Moderation GUI: /moderationgui edition, profile <player>, history <player>, "
+                "Moderation GUI: /moderationgui edition, export [limit], profile <player>, history <player>, "
                         + "rank list|create|edit|delete|assign|unassign|parent, note <player> <notes>, "
                         + "activity, kick <player> <reason>, "
                         + "permission rank|player <target> <node> <grant|deny|remove>, "
