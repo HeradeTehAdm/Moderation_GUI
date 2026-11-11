@@ -81,6 +81,27 @@ public final class PunishmentRepository {
         return List.copyOf(punishments);
     }
 
+    public List<Punishment> findRecent(int limit, long now) throws SQLException {
+        if (limit < 1 || limit > 200) {
+            throw new IllegalArgumentException("limit must be between 1 and 200");
+        }
+        List<Punishment> recent = new ArrayList<>();
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at,
+                       CASE WHEN active = 1 AND (expires_at IS NULL OR expires_at > ?) THEN 1 ELSE 0 END AS active
+                FROM punishments
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """)) {
+            statement.setLong(1, now);
+            statement.setInt(2, limit);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) recent.add(mapPunishment(result));
+            }
+        }
+        return List.copyOf(recent);
+    }
+
     /** Возвращает историю наказаний игрока, включая снятые и истёкшие записи. */
     public List<Punishment> findHistoryForPlayer(String playerUuid, int limit) throws SQLException {
         if (limit < 1 || limit > 200) {
