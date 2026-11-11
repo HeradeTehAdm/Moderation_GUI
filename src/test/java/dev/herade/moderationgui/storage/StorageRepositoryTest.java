@@ -127,6 +127,17 @@ class StorageRepositoryTest {
     }
 
     @Test
+    void punishmentHistoryIncludesRevokedRecords() throws Exception {
+        long id = punishments.create("player-uuid", "PlayerOne",
+                PunishmentRepository.Type.WARN, "First warning", "staff-uuid", 100, null);
+        assertTrue(punishments.revoke(id));
+
+        assertEquals(id, punishments.findById(id).orElseThrow().id());
+        assertEquals(1, punishments.findHistoryForPlayer("player-uuid", 20).size());
+        assertTrue(punishments.findActiveForPlayer("player-uuid", 200).isEmpty());
+    }
+
+    @Test
     void moderationServiceWritesPunishmentAndAuditTogether() throws Exception {
         ModerationService service = new ModerationService(database, punishments, activityLog);
         long punishmentId = service.issuePunishment("player-uuid", "PlayerOne",
