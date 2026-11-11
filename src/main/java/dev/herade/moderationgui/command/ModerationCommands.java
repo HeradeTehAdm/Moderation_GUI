@@ -7,6 +7,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.herade.moderationgui.ModerationGui;
 import dev.herade.moderationgui.storage.PlayerRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
+import dev.herade.moderationgui.storage.RankRepository;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -405,11 +406,24 @@ public final class ModerationCommands {
                 source.sendFailure(Component.literal("Player profile not found: " + name));
                 return 0;
             }
+            var assignedRanks = ModerationGui.ranks().findForPlayer(player.uuid());
+            var activePunishments = ModerationGui.punishments()
+                    .findActiveForPlayer(player.uuid(), System.currentTimeMillis());
+            String rankNames = assignedRanks.isEmpty() ? "None"
+                    : assignedRanks.stream().map(RankRepository.Rank::name)
+                            .collect(java.util.stream.Collectors.joining(", "));
+            java.time.format.DateTimeFormatter dateFormat =
+                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                            .withZone(java.time.ZoneId.systemDefault());
             source.sendSuccess(() -> Component.literal(
                     "Player: " + player.lastName()
                             + " | UUID: " + player.uuid()
-                            + " | First joined: " + player.firstJoinedAt()
-                            + " | Last seen: " + player.lastSeenAt()
+                            + " | First joined: " + dateFormat.format(
+                                    java.time.Instant.ofEpochMilli(player.firstJoinedAt()))
+                            + " | Last seen: " + dateFormat.format(
+                                    java.time.Instant.ofEpochMilli(player.lastSeenAt()))
+                            + " | Ranks: " + rankNames
+                            + " | Active punishments: " + activePunishments.size()
                             + " | Notes: " + (player.notes().isBlank() ? "None" : player.notes())), false);
             return 1;
         } catch (SQLException exception) {
