@@ -74,8 +74,6 @@ public final class PunishmentRepository {
             statement.setLong(2, now);
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
-                    long expiry = result.getLong("expires_at");
-                    Long expiresAt = result.wasNull() ? null : expiry;
                     punishments.add(mapPunishment(result));
                 }
             }
