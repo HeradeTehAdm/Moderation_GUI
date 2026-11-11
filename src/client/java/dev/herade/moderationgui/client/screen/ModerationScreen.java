@@ -228,6 +228,13 @@ public final class ModerationScreen extends Screen {
         }
 
         int footerY = this.height - 28;
+        int footerWidth = 96;
+        int footerGap = 8;
+        int footerStart = (this.width - (footerWidth * 3 + footerGap * 2)) / 2;
+        addRenderableWidget(Button.builder(Component.literal("Refresh"),
+                button -> requestSection())
+                .bounds(footerStart, footerY, footerWidth, 26).build());
+
         addRenderableWidget(Button.builder(Component.literal("Command Help"),
                 button -> {
                     if (this.minecraft.player != null) {
@@ -407,9 +414,18 @@ public final class ModerationScreen extends Screen {
         runCommand("moderationgui unpunish " + id);
     }
 
+    private void requestSection() {
+        if (this.minecraft.player != null && this.minecraft.getConnection() != null) {
+            content = "Refreshing data from server...";
+            if (contentWidget != null) contentWidget.setMessage(Component.literal(content));
+            ClientPlayNetworking.send(new RequestSectionPayload(selectedSection));
+        }
+    }
+
     private void runCommand(String command) {
         if (this.minecraft.player != null) {
             this.minecraft.player.connection.sendCommand(command);
+            requestSection();
         }
     }
 
