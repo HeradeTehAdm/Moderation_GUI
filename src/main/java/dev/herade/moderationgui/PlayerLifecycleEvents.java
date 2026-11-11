@@ -15,6 +15,16 @@ public final class PlayerLifecycleEvents {
                 PlayerRepository repository = ModerationGui.players();
                 repository.recordJoin(player.getUUID().toString(),
                         player.getGameProfile().getName(), System.currentTimeMillis());
+
+                ModerationGui.punishments()
+                        .findActiveForPlayer(player.getUUID().toString(), System.currentTimeMillis())
+                        .stream()
+                        .filter(punishment -> punishment.type()
+                                == dev.herade.moderationgui.storage.PunishmentRepository.Type.BAN)
+                        .findFirst()
+                        .ifPresent(punishment -> player.connection.disconnect(
+                                net.minecraft.network.chat.Component.literal(
+                                        "You are banned from this server. Reason: " + punishment.reason())));
             } catch (Exception exception) {
                 ModerationGui.LOGGER.error("Could not save player join profile for {}.",
                         player.getUUID(), exception);
