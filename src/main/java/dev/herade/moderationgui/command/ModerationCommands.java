@@ -58,6 +58,24 @@ public final class ModerationCommands {
                                                                         IntegerArgumentType.getInteger(context, "priority"),
                                                                         StringArgumentType.getString(context, "prefix"),
                                                                         StringArgumentType.getString(context, "color"))))))))
+                        .then(Commands.literal("edit")
+                                .requires(source -> canUse(source, "moderation.ranks.edit"))
+                                .then(Commands.argument("name", StringArgumentType.word())
+                                        .then(Commands.argument("priority", IntegerArgumentType.integer())
+                                                .then(Commands.argument("prefix", StringArgumentType.word())
+                                                        .then(Commands.argument("color", StringArgumentType.word())
+                                                                .executes(context -> editRank(context.getSource(),
+                                                                        StringArgumentType.getString(context, "name"),
+                                                                        IntegerArgumentType.getInteger(context, "priority"),
+                                                                        StringArgumentType.getString(context, "prefix"),
+                                                                        StringArgumentType.getString(context, "color"))))))))
+                        .then(Commands.literal("parent")
+                                .requires(source -> canUse(source, "moderation.ranks.edit"))
+                                .then(Commands.argument("child", StringArgumentType.word())
+                                        .then(Commands.argument("parent", StringArgumentType.word())
+                                                .executes(context -> setRankParent(context.getSource(),
+                                                        StringArgumentType.getString(context, "child"),
+                                                        StringArgumentType.getString(context, "parent"))))))
                         .then(Commands.literal("delete")
                                 .requires(source -> canUse(source, "moderation.ranks.delete"))
                                 .then(Commands.argument("name", StringArgumentType.word())
@@ -108,6 +126,16 @@ public final class ModerationCommands {
                                         .executes(context -> listPlayerPermissions(context.getSource(),
                                                 StringArgumentType.getString(context, "player")))))
                 )
+                .then(Commands.literal("note")
+                        .requires(source -> canUse(source, "moderation.players.edit"))
+                        .then(Commands.argument("player", StringArgumentType.word())
+                                .then(Commands.argument("notes", StringArgumentType.greedyString())
+                                        .executes(context -> updateNotes(context.getSource(),
+                                                StringArgumentType.getString(context, "player"),
+                                                StringArgumentType.getString(context, "notes"))))))
+                .then(Commands.literal("activity")
+                        .requires(source -> canUse(source, "moderation.activity.view"))
+                        .executes(context -> showActivity(context.getSource())))
                 .then(Commands.literal("kick")
                         .requires(source -> canUse(source, "moderation.kick"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -361,7 +389,8 @@ public final class ModerationCommands {
     private static int showHelp(CommandSourceStack source) {
         source.sendSuccess(() -> Component.literal(
                 "Moderation GUI: /moderationgui profile <player>, history <player>, "
-                        + "rank list|create|delete|assign|unassign, kick <player> <reason>, "
+                        + "rank list|create|edit|delete|assign|unassign|parent, note <player> <notes>, "
+                        + "activity, kick <player> <reason>, "
                         + "permission rank|player <target> <node> <grant|deny|remove>, "
                         + "warn <player> <reason>, mute <player> <reason>, "
                         + "ban <player> <reason>, tempban <player> <seconds> <reason>, "
@@ -408,6 +437,81 @@ public final class ModerationCommands {
         }
     }
 
+
+
+    private static int editRank(CommandSourceStack source, String name, int priority,
+                                String prefix, String color) {
+        try {
+            var rank = ModerationGui.ranks().findByName(name);
+            if (rank.isEmpty()) {
+                source.sendFailure(Component.literal("Rank not found: " + name));
+                return 0;
+            }
+            ModerationGui.rankService().update(rank.get().id(),
+                    prefix.equals("-") ? "" : prefix, color, priority,
+                    actorUuid(source), System.currentTimeMillis());
+            source.sendSuccess(() -> Component.literal("Rank " + name + " updated."), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not update rank.", exception);
+        }
+    }
+
+    private static int setRankParent(CommandSourceStack source, String childName, String parentName) {
+        try {
+            var child = ModerationGui.ranks().findByName(childName);
+            if (child.isEmpty()) {
+                source.sendFailure(Component.literal("Child rank not found: " + childName));
+                return 0;
+            }
+            Long parentId = null;
+            if (!parentName.equalsIgnoreCase("none")) {
+                var parent = ModerationGui.ranks().findByName(parentName);
+                if (parent.isEmpty()) {
+                    source.sendFailure(Component.literal("Parent rank not found: " + parentName));
+                    return 0;
+                }
+                parentId = parent.get().id();
+            }
+            ModerationGui.rankService().setParent(child.get().id(), parentId,
+                    actorUuid(source), System.currentTimeMillis());
+            source.sendSuccess(() -> Component.literal(
+                    "Parent rank for " + childName + " set to " + parentName + "."), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not update rank inheritance.", exception);
+        }
+    }
+
+    private static int updateNotes(CommandSourceStack source, String playerName, String notes) {
+        try {
+            PlayerRepository.Player player = findPlayer(playerName).orElse(null);
+            if (player == null) {
+                source.sendFailure(Component.literal("Player profile not found: " + playerName));
+                return 0;
+            }
+            ModerationGui.moderation().updatePlayerNotes(player.uuid(), notes,
+                    actorUuid(source), System.currentTimeMillis());
+            source.sendSuccess(() -> Component.literal("Notes updated for " + player.lastName() + "."), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not update player notes.", exception);
+        }
+    }
+
+    private static int showActivity(CommandSourceStack source) {
+        try {
+            var entries = ModerationGui.activityLog().recent(20);
+            source.sendSuccess(() -> Component.literal("Recent staff activity (" + entries.size() + "):"), false);
+            entries.forEach(entry -> source.sendSuccess(() -> Component.literal(
+                    entry.action() + " | actor=" + entry.actorUuid()
+                            + " | target=" + (entry.targetUuid() == null ? "None" : entry.targetUuid())
+                            + " | " + entry.details()), false));
+            return entries.size();
+        } catch (SQLException exception) {
+            return reportFailure(source, "Could not load activity log.", exception);
+        }
+    }
 
     private static int kickPlayer(CommandSourceStack source, String targetName, String reason) {
         try {
