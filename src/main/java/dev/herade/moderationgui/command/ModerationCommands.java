@@ -399,8 +399,9 @@ public final class ModerationCommands {
                         + " | Available features: " + features.size()), false);
         for (var feature : dev.herade.moderationgui.edition.EditionFeature.values()) {
             boolean available = features.contains(feature);
-            source.sendSuccess(() -> Component.literal(
-                    (available ? "[AVAILABLE] " : "[PRO] ") + feature.name()), false);
+            String status = !feature.implemented() ? "[PLANNED] "
+                    : available ? "[AVAILABLE] " : "[PRO LOCKED] ";
+            source.sendSuccess(() -> Component.literal(status + feature.name()), false);
         }
         if (edition == dev.herade.moderationgui.edition.Edition.PRO) {
             source.sendSuccess(() -> Component.literal(
