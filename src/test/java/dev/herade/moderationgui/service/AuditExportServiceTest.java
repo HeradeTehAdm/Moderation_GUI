@@ -38,19 +38,22 @@ class AuditExportServiceTest {
                 "Spam, repeated \"quotes\" and details", 100);
         activityLog.record("staff-uuid", "PLAYER_KICKED", "player-uuid",
                 "Second action", 200);
+        activityLog.record("staff-uuid", "PLAYER_NOTE", "player-uuid",
+                "=HYPERLINK(\"https://example.invalid\")", 300);
 
         AuditExportService.ExportResult result =
-                new AuditExportService(activityLog).export(temporaryDirectory, 2);
+                new AuditExportService(activityLog).export(temporaryDirectory, 3);
 
         Path file = temporaryDirectory.resolve(result.relativePath());
         assertTrue(Files.exists(file));
-        assertEquals(2, result.rows());
+        assertEquals(3, result.rows());
 
         String csv = Files.readString(file, StandardCharsets.UTF_8);
-        assertTrue(csv.startsWith("id,created_at,actor_uuid,action,target_uuid,details"));
+        assertTrue(csv.startsWith("\uFEFFid,created_at,actor_uuid,action,target_uuid,details"));
         assertTrue(csv.contains("PLAYER_KICKED"));
         assertTrue(csv.contains("PLAYER_WARNED"));
         assertTrue(csv.contains("\"Spam, repeated \"\"quotes\"\" and details\""));
+        assertTrue(csv.contains("'=HYPERLINK"));
     }
 
     @Test
