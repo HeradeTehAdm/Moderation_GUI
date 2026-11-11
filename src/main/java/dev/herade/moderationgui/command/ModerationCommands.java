@@ -408,7 +408,7 @@ public final class ModerationCommands {
                     source.getServer().getServerDirectory(), limit);
             source.sendSuccess(() -> Component.literal(
                     "Exported " + result.rows() + " activity records to "
-                            + result.relativePath().toString().replace('\\\\', '/')), true);
+                            + result.relativePath().toString()), true);
             return result.rows();
         } catch (java.sql.SQLException | java.io.IOException | IllegalArgumentException
                  | EditionManager.FeatureUnavailableException exception) {
