@@ -23,6 +23,17 @@ public final class ModerationScreen extends Screen {
     private EditBox reasonInput;
     private EditBox durationInput;
     private EditBox punishmentIdInput;
+    private EditBox notePlayerInput;
+    private EditBox noteTextInput;
+    private EditBox rankNameInput;
+    private EditBox rankPriorityInput;
+    private EditBox rankPrefixInput;
+    private EditBox rankColorInput;
+    private EditBox rankPlayerInput;
+    private EditBox rankParentInput;
+    private EditBox permissionTargetTypeInput;
+    private EditBox permissionTargetInput;
+    private EditBox permissionNodeInput;
 
     public ModerationScreen() {
         this("Players");
@@ -61,7 +72,7 @@ public final class ModerationScreen extends Screen {
                 Component.literal(content),
                 this.font
         ).setMaxWidth(Math.max(120, this.width - 60))
-         .setMaxRows(selectedSection.equals("Punishments")
+         .setMaxRows(isManagementSection()
                  ? 3 : Math.max(2, Math.min(8, (this.height - contentY - 52) / 10)));
         addRenderableWidget(contentWidget);
 
@@ -72,6 +83,87 @@ public final class ModerationScreen extends Screen {
             contentWidget.setMessage(Component.literal(content));
         }
 
+
+
+        if (selectedSection.equals("Players")) {
+            if (this.height >= 400) {
+                int formY = contentY + 44;
+                int fieldWidth = Math.max(120, Math.min(220, (this.width - 70) / 2));
+                int startX = (this.width - (fieldWidth * 2 + 8)) / 2;
+                notePlayerInput = addInput(startX, formY, fieldWidth, "Player", 16, "");
+                noteTextInput = addInput(startX + fieldWidth + 8, formY,
+                        fieldWidth, "Profile notes", 2000, "");
+                addActionButton(this.width / 2 - 70, formY + 28, 140, "Save Notes", this::saveNotes);
+            } else {
+                contentWidget.setMessage(Component.literal("Increase the game window height to edit player notes."));
+            }
+        }
+
+        if (selectedSection.equals("Ranks")) {
+            if (this.height >= 400) {
+                int formY = contentY + 42;
+                int gapX = 6;
+                int fieldWidth = Math.max(64, Math.min(150, (this.width - 60 - gapX * 3) / 4));
+                int rowWidth = fieldWidth * 4 + gapX * 3;
+                int x = (this.width - rowWidth) / 2;
+                rankNameInput = addInput(x, formY, fieldWidth, "Rank name", 32, "");
+                rankPriorityInput = addInput(x + fieldWidth + gapX, formY,
+                        fieldWidth, "Priority", 10, "0");
+                rankPrefixInput = addInput(x + (fieldWidth + gapX) * 2, formY,
+                        fieldWidth, "Prefix (- = none)", 64, "-");
+                rankColorInput = addInput(x + (fieldWidth + gapX) * 3, formY,
+                        fieldWidth, "Color", 24, "white");
+
+                int secondY = formY + 25;
+                rankPlayerInput = addInput(x, secondY, fieldWidth * 2 + gapX, "Player", 16, "");
+                rankParentInput = addInput(x + (fieldWidth + gapX) * 2, secondY,
+                        fieldWidth * 2 + gapX, "Parent rank (none = clear)", 32, "none");
+
+                int actionY = secondY + 27;
+                int actionWidth = Math.max(64, Math.min(100, (this.width - 60 - gapX * 3) / 4));
+                int actionGap = 6;
+                int actionsWidth = actionWidth * 4 + actionGap * 3;
+                int actionsX = (this.width - actionsWidth) / 2;
+                addActionButton(actionsX, actionY, actionWidth, "Create", this::createRank);
+                addActionButton(actionsX + actionWidth + actionGap, actionY,
+                        actionWidth, "Edit", this::editRank);
+                addActionButton(actionsX + (actionWidth + actionGap) * 2, actionY,
+                        actionWidth, "Delete", this::deleteRank);
+                addActionButton(actionsX + (actionWidth + actionGap) * 3, actionY,
+                        actionWidth, "Assign", this::assignRank);
+                addActionButton(actionsX, actionY + 28, actionWidth, "Unassign", this::unassignRank);
+                addActionButton(actionsX + actionWidth + actionGap, actionY + 28,
+                        actionWidth * 2 + actionGap, "Set Parent", this::setRankParent);
+            } else {
+                contentWidget.setMessage(Component.literal("Increase the game window height to manage ranks."));
+            }
+        }
+
+        if (selectedSection.equals("Permissions")) {
+            if (this.height >= 400) {
+                int formY = contentY + 44;
+                int gapX = 8;
+                int fieldWidth = Math.max(80, Math.min(180, (this.width - 60 - gapX * 2) / 3));
+                int rowWidth = fieldWidth * 3 + gapX * 2;
+                int x = (this.width - rowWidth) / 2;
+                permissionTargetTypeInput = addInput(x, formY, fieldWidth, "Target type: rank/player", 8, "rank");
+                permissionTargetInput = addInput(x + fieldWidth + gapX, formY,
+                        fieldWidth, "Rank or player", 32, "");
+                permissionNodeInput = addInput(x + (fieldWidth + gapX) * 2, formY,
+                        fieldWidth, "Permission node", 128, "");
+                int actionY = formY + 28;
+                int actionWidth = 90;
+                int actionGap = 8;
+                int actionsX = (this.width - (actionWidth * 3 + actionGap * 2)) / 2;
+                addActionButton(actionsX, actionY, actionWidth, "Grant", () -> changePermission("grant"));
+                addActionButton(actionsX + actionWidth + actionGap, actionY,
+                        actionWidth, "Deny", () -> changePermission("deny"));
+                addActionButton(actionsX + (actionWidth + actionGap) * 2, actionY,
+                        actionWidth, "Remove", () -> changePermission("remove"));
+            } else {
+                contentWidget.setMessage(Component.literal("Increase the game window height to manage permissions."));
+            }
+        }
 
         if (selectedSection.equals("Punishments")) {
             if (this.height >= 400) {
@@ -150,6 +242,125 @@ public final class ModerationScreen extends Screen {
     }
 
 
+
+
+    private EditBox addInput(int x, int y, int width, String hint, int maxLength, String initialValue) {
+        EditBox input = new EditBox(this.font, x, y, width, 20, Component.literal(hint));
+        input.setHint(Component.literal(hint));
+        input.setMaxLength(maxLength);
+        if (initialValue != null && !initialValue.isEmpty()) input.setValue(initialValue);
+        addRenderableWidget(input);
+        return input;
+    }
+
+    private boolean isManagementSection() {
+        return selectedSection.equals("Players") || selectedSection.equals("Ranks")
+                || selectedSection.equals("Permissions") || selectedSection.equals("Punishments");
+    }
+
+    private void saveNotes() {
+        if (notePlayerInput == null || noteTextInput == null) return;
+        String player = notePlayerInput.getValue().trim();
+        String notes = sanitize(noteTextInput.getValue());
+        if (player.isBlank()) {
+            showMessage("Enter a player name.");
+            return;
+        }
+        runCommand("moderationgui note " + player + " " + notes);
+    }
+
+    private void createRank() {
+        if (rankNameInput == null) return;
+        String name = rankNameInput.getValue().trim();
+        String priority = rankPriorityInput.getValue().trim();
+        String prefix = rankPrefixInput.getValue().trim();
+        String color = rankColorInput.getValue().trim();
+        if (name.isBlank() || color.isBlank() || !isInteger(priority)) {
+            showMessage("Enter a rank name, integer priority and color.");
+            return;
+        }
+        runCommand("moderationgui rank create " + name + " " + priority + " "
+                + (prefix.isBlank() ? "-" : prefix) + " " + color);
+    }
+
+    private void editRank() {
+        if (rankNameInput == null) return;
+        String name = rankNameInput.getValue().trim();
+        String priority = rankPriorityInput.getValue().trim();
+        String prefix = rankPrefixInput.getValue().trim();
+        String color = rankColorInput.getValue().trim();
+        if (name.isBlank() || color.isBlank() || !isInteger(priority)) {
+            showMessage("Enter a rank name, integer priority and color.");
+            return;
+        }
+        runCommand("moderationgui rank edit " + name + " " + priority + " "
+                + (prefix.isBlank() ? "-" : prefix) + " " + color);
+    }
+
+    private void deleteRank() {
+        String name = rankNameInput == null ? "" : rankNameInput.getValue().trim();
+        if (name.isBlank()) {
+            showMessage("Enter a rank name.");
+            return;
+        }
+        runCommand("moderationgui rank delete " + name);
+    }
+
+    private void assignRank() {
+        String player = rankPlayerInput == null ? "" : rankPlayerInput.getValue().trim();
+        String rank = rankNameInput == null ? "" : rankNameInput.getValue().trim();
+        if (player.isBlank() || rank.isBlank()) {
+            showMessage("Enter both player and rank.");
+            return;
+        }
+        runCommand("moderationgui rank assign " + player + " " + rank);
+    }
+
+    private void unassignRank() {
+        String player = rankPlayerInput == null ? "" : rankPlayerInput.getValue().trim();
+        String rank = rankNameInput == null ? "" : rankNameInput.getValue().trim();
+        if (player.isBlank() || rank.isBlank()) {
+            showMessage("Enter both player and rank.");
+            return;
+        }
+        runCommand("moderationgui rank unassign " + player + " " + rank);
+    }
+
+    private void setRankParent() {
+        String child = rankNameInput == null ? "" : rankNameInput.getValue().trim();
+        String parent = rankParentInput == null ? "" : rankParentInput.getValue().trim();
+        if (child.isBlank() || parent.isBlank()) {
+            showMessage("Enter a child rank and parent rank (or none).");
+            return;
+        }
+        runCommand("moderationgui rank parent " + child + " " + parent);
+    }
+
+    private void changePermission(String action) {
+        if (permissionTargetTypeInput == null || permissionTargetInput == null || permissionNodeInput == null) return;
+        String type = permissionTargetTypeInput.getValue().trim().toLowerCase(java.util.Locale.ROOT);
+        String target = permissionTargetInput.getValue().trim();
+        String node = permissionNodeInput.getValue().trim();
+        if ((!type.equals("rank") && !type.equals("player")) || target.isBlank() || node.isBlank()) {
+            showMessage("Target type must be rank or player; enter target and node.");
+            return;
+        }
+        runCommand("moderationgui permission " + type + " " + target + " " + node + " " + action);
+    }
+
+    private static boolean isInteger(String value) {
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
+    }
+
+    private void showMessage(String message) {
+        content = message;
+        if (contentWidget != null) contentWidget.setMessage(Component.literal(message));
+    }
 
     private void addActionButton(int x, int y, int width, String label, Runnable action) {
         addRenderableWidget(Button.builder(Component.literal(label), button -> action.run())
