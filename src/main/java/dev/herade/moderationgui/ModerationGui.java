@@ -7,6 +7,7 @@ import dev.herade.moderationgui.storage.PlayerRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
 import dev.herade.moderationgui.storage.RankRepository;
 import dev.herade.moderationgui.service.ModerationService;
+import dev.herade.moderationgui.command.ModerationCommands;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ public final class ModerationGui implements ModInitializer {
     public void onInitialize() {
         PlayerLifecycleEvents.register();
         ModerationEnforcementEvents.register();
+        ModerationCommands.register();
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             try {
