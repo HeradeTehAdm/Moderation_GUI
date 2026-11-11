@@ -59,6 +59,45 @@ public final class PermissionRepository {
         }
     }
 
+    public boolean removeRankPermission(long rankId, String node) throws SQLException {
+        try (PreparedStatement statement = database.connection().prepareStatement(
+                "DELETE FROM rank_permissions WHERE rank_id = ? AND permission_node = ?")) {
+            statement.setLong(1, rankId);
+            statement.setString(2, normalizeNode(node, true));
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public java.util.List<PermissionRule> findRankPermissions(long rankId) throws SQLException {
+        java.util.List<PermissionRule> rules = new java.util.ArrayList<>();
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT permission_node, allowed FROM rank_permissions
+                WHERE rank_id = ? ORDER BY permission_node COLLATE NOCASE
+                """)) {
+            statement.setLong(1, rankId);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) rules.add(new PermissionRule(
+                        result.getString("permission_node"), result.getInt("allowed") == 1));
+            }
+        }
+        return java.util.List.copyOf(rules);
+    }
+
+    public java.util.List<PermissionRule> findPlayerPermissions(String playerUuid) throws SQLException {
+        java.util.List<PermissionRule> rules = new java.util.ArrayList<>();
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT permission_node, allowed FROM player_permissions
+                WHERE player_uuid = ? ORDER BY permission_node COLLATE NOCASE
+                """)) {
+            statement.setString(1, requireText(playerUuid, "playerUuid", 36));
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) rules.add(new PermissionRule(
+                        result.getString("permission_node"), result.getInt("allowed") == 1));
+            }
+        }
+        return java.util.List.copyOf(rules);
+    }
+
     public boolean hasPermission(String playerUuid, String requestedNode) throws SQLException {
         String uuid = requireText(playerUuid, "playerUuid", 36);
         String requested = normalizeNode(requestedNode, false);
@@ -179,6 +218,8 @@ public final class PermissionRepository {
         if (normalized.length() > maxLength) throw new IllegalArgumentException(field + " cannot exceed " + maxLength + " characters");
         return normalized;
     }
+
+    public record PermissionRule(String node, boolean allowed) { }
 
     private record Candidate(int specificity, int inheritanceDepth, int rankPriority, boolean allowed) { }
 }
