@@ -1,6 +1,10 @@
 package dev.herade.moderationgui.client.screen;
 
+import dev.herade.moderationgui.network.RequestSectionPayload;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.MultiLineTextWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -12,6 +16,8 @@ public final class ModerationScreen extends Screen {
     };
 
     private final String selectedSection;
+    private String content = "Loading data from server...";
+    private MultiLineTextWidget contentWidget;
 
     public ModerationScreen() {
         this("Players");
@@ -43,7 +49,24 @@ public final class ModerationScreen extends Screen {
                     .build());
         }
 
-        int footerY = Math.min(this.height - 58, firstRowY + 92);
+        int contentY = firstRowY + 76;
+        contentWidget = new MultiLineTextWidget(
+                (this.width - Math.max(120, this.width - 60)) / 2,
+                contentY,
+                Component.literal(content),
+                this.font
+        ).setMaxWidth(Math.max(120, this.width - 60))
+         .setMaxRows(Math.max(2, Math.min(8, (this.height - contentY - 52) / 10)));
+        addRenderableWidget(contentWidget);
+
+        if (this.minecraft.player != null) {
+            ClientPlayNetworking.send(new RequestSectionPayload(selectedSection));
+        } else {
+            content = "Join a server to load moderation data.";
+            contentWidget.setMessage(Component.literal(content));
+        }
+
+        int footerY = this.height - 36;
         addRenderableWidget(Button.builder(Component.literal("Command Help"),
                 button -> {
                     if (this.minecraft.player != null) {
@@ -55,6 +78,18 @@ public final class ModerationScreen extends Screen {
                 button -> this.onClose())
                 .bounds(this.width / 2 + 4, footerY, 120, 26)
                 .build());
+    }
+
+
+    public static void receiveData(String section, String content) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.screen instanceof ModerationScreen screen
+                && screen.selectedSection.equals(section)) {
+            screen.content = content == null ? "No data received." : content;
+            if (screen.contentWidget != null) {
+                screen.contentWidget.setMessage(Component.literal(screen.content));
+            }
+        }
     }
 
     @Override
