@@ -1,0 +1,122 @@
+package dev.herade.moderationgui.storage;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Path;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class StorageRepositoryTest {
+    @TempDir
+    Path temporaryDirectory;
+
+    private Database database;
+    private PlayerRepository players;
+    private RankRepository ranks;
+    private PermissionRepository permissions;
+    private PunishmentRepository punishments;
+    private ActivityLogRepository activityLog;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        database = new Database(temporaryDirectory.resolve("moderation.db"));
+        database.open();
+        players = new PlayerRepository(database);
+        ranks = new RankRepository(database);
+        permissions = new PermissionRepository(database);
+        punishments = new PunishmentRepository(database);
+        activityLog = new ActivityLogRepository(database);
+    }
+
+    @Test
+    void migrationIsIdempotentAndUsesCurrentVersion() throws Exception {
+        DatabaseSchema.migrate(database.connection());
+        DatabaseSchema.migrate(database.connection());
+
+        try (PreparedStatement statement = database.connection()
+                .prepareStatement("SELECT version FROM schema_version");
+             ResultSet result = statement.executeQuery()) {
+            assertTrue(result.next());
+            assertEquals(2, result.getInt(1));
+            assertFalse(result.next());
+        }
+    }
+
+    @Test
+    void playerProfileKeepsFirstJoinAndUpdatesLastSeen() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 100);
+        players.recordJoin("player-uuid", "PlayerRenamed", 200);
+        players.updateNotes("player-uuid", "Trusted member");
+
+        PlayerRepository.Player player = players.findByUuid("player-uuid").orElseThrow();
+        assertEquals("PlayerRenamed", player.lastName());
+        assertEquals(100, player.firstJoinedAt());
+        assertEquals(200, player.lastSeenAt());
+        assertEquals("Trusted member", player.notes());
+        assertEquals(1, players.searchByName("renamed", 10).size());
+    }
+
+    @Test
+    void rankInheritanceRejectsCyclesAndAssignsRanks() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 100);
+        long base = ranks.create("Member", "[M]", "green", 10);
+        long staff = ranks.create("Staff", "[S]", "gold", 50);
+        ranks.setParent(staff, base);
+        ranks.assign("player-uuid", staff, "moderator-uuid", 150);
+
+        assertEquals(2, ranks.findForPlayer("player-uuid").size());
+        assertThrows(IllegalArgumentException.class, () -> ranks.setParent(base, staff));
+    }
+
+    @Test
+    void personalPermissionsOverrideInheritedRankPermissions() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 100);
+        long member = ranks.create("Member", "", "green", 10);
+        long staff = ranks.create("Staff", "", "gold", 50);
+        ranks.setParent(staff, member);
+        ranks.assign("player-uuid", staff, "moderator-uuid", 150);
+
+        permissions.setRankPermission(member, "moderation.*", true);
+        permissions.setRankPermission(staff, "moderation.ban", false);
+
+        assertTrue(permissions.hasPermission("player-uuid", "moderation.kick"));
+        assertFalse(permissions.hasPermission("player-uuid", "moderation.ban"));
+
+        permissions.setPlayerPermission("player-uuid", "moderation.ban", true, "owner-uuid");
+        assertTrue(permissions.hasPermission("player-uuid", "moderation.ban"));
+        permissions.setPlayerPermission("player-uuid", "moderation.kick", false, "owner-uuid");
+        assertFalse(permissions.hasPermission("player-uuid", "moderation.kick"));
+    }
+
+    @Test
+    void temporaryPunishmentsExpireAndCanBeRevoked() throws Exception {
+        long temporary = punishments.create("player-uuid", "PlayerOne",
+                PunishmentRepository.Type.MUTE, "Spam", "moderator-uuid", 100, 200L);
+        long permanent = punishments.create("player-uuid", "PlayerOne",
+                PunishmentRepository.Type.BAN, "Repeated abuse", "moderator-uuid", 100, null);
+
+        List<PunishmentRepository.Punishment> active = punishments.findActiveForPlayer("player-uuid", 150);
+        assertEquals(2, active.size());
+        assertEquals(1, punishments.expireDue(200));
+        assertEquals(1, punishments.findActiveForPlayer("player-uuid", 200).size());
+        assertTrue(punishments.revoke(permanent));
+        assertFalse(punishments.revoke(temporary));
+        assertTrue(punishments.findActiveForPlayer("player-uuid", 250).isEmpty());
+    }
+
+    @Test
+    void activityLogReturnsNewestEntriesFirst() throws Exception {
+        activityLog.record("staff-uuid", "WARN", "player-uuid", "First warning", 100);
+        activityLog.record("staff-uuid", "MUTE", "player-uuid", "Repeated spam", 200);
+
+        List<ActivityLogRepository.Entry> entries = activityLog.recent(10);
+        assertEquals(2, entries.size());
+        assertEquals("MUTE", entries.getFirst().action());
+        assertEquals("WARN", entries.getLast().action());
+    }
+}
