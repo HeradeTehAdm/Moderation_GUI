@@ -88,14 +88,16 @@ public final class PunishmentRepository {
         }
         List<Punishment> history = new ArrayList<>();
         try (PreparedStatement statement = database.connection().prepareStatement("""
-                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at, active
+                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at,
+                       CASE WHEN active = 1 AND (expires_at IS NULL OR expires_at > ?) THEN 1 ELSE 0 END AS active
                 FROM punishments
                 WHERE player_uuid = ?
                 ORDER BY created_at DESC, id DESC
                 LIMIT ?
                 """)) {
-            statement.setString(1, requireText(playerUuid, "playerUuid", 36));
-            statement.setInt(2, limit);
+            statement.setLong(1, System.currentTimeMillis());
+            statement.setString(2, requireText(playerUuid, "playerUuid", 36));
+            statement.setInt(3, limit);
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) history.add(mapPunishment(result));
             }
@@ -105,10 +107,12 @@ public final class PunishmentRepository {
 
     public java.util.Optional<Punishment> findById(long punishmentId) throws SQLException {
         try (PreparedStatement statement = database.connection().prepareStatement("""
-                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at, active
+                SELECT id, player_uuid, player_name, type, reason, moderator_uuid, created_at, expires_at,
+                       CASE WHEN active = 1 AND (expires_at IS NULL OR expires_at > ?) THEN 1 ELSE 0 END AS active
                 FROM punishments WHERE id = ?
                 """)) {
-            statement.setLong(1, punishmentId);
+            statement.setLong(1, System.currentTimeMillis());
+            statement.setLong(2, punishmentId);
             try (ResultSet result = statement.executeQuery()) {
                 return result.next()
                         ? java.util.Optional.of(mapPunishment(result))
