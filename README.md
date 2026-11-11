@@ -1,19 +1,50 @@
 # Moderation GUI
 
-A Fabric server moderation mod for Minecraft 26.3.
+**Moderation GUI** — серверный модерационный инструмент для Minecraft 26.3 на Fabric. Проект находится в активной разработке.
 
-> Development is in progress. This repository is the project home; features and build status will be documented as implementation is added.
+## Назначение
 
-## Planned modules
+Мод объединяет управление игроками, рангами, правами доступа, наказаниями и журналом действий в единой системе. Сервер остаётся авторитетной стороной: клиентский интерфейс не должен самостоятельно определять права или выполнять административные операции.
 
-- Player profiles and moderation history
-- Rank and permission management
-- Punishments and activity logging
-- Server-authoritative moderation GUI
-- SQLite persistence
+## Разделы будущего интерфейса
 
-## Compatibility
+- **Players** — профили игроков, заметки, история и назначенные ранги.
+- **Ranks** — создание и настройка групп, приоритеты и наследование.
+- **Permissions** — групповые и индивидуальные разрешения.
+- **Punishments** — наказания и управление их сроками.
+- **History** — история действий и наказаний.
+- **Settings** — настройки мода.
+- **Activity Log** — журнал действий персонала.
 
-- Minecraft: 26.3
-- Mod loader: Fabric
-- Java toolchain: to be finalized against the official 26.3 toolchain before release
+## Реализовано в текущей ветке
+
+- SQLite с версионированием миграций и транзакционным обновлением схемы.
+- Хранение профилей игроков, включая офлайн-профили.
+- Репозиторий рангов и назначений с защитой от циклического наследования.
+- Репозиторий наказаний BAN, MUTE и WARN, включая временные сроки и отзыв.
+- Репозиторий журнала административных действий.
+- SQLite JDBC включается в сборку как вложенная зависимость.
+
+## Совместимость
+
+- Minecraft: **26.3**
+- Загрузчик: **Fabric**
+- Java toolchain: **25** согласно текущему шаблону Fabric для 26.3. Требование Java 26 отдельно проверяется перед сменой целевой версии компиляции.
+
+## Сборка
+
+Для сборки требуется совместимая с проектом версия JDK и Gradle Wrapper. После добавления Wrapper сборка будет выполняться командой:
+
+```bash
+./gradlew build
+```
+
+На Windows:
+
+```powershell
+.\gradlew.bat build
+```
+
+## Статус
+
+Проект не является релизной версией. Команды модерации, клиентский GUI, сетевые пакеты, серверные проверки прав и интеграционные тесты ещё требуют реализации.
