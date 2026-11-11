@@ -1,6 +1,7 @@
 package dev.herade.moderationgui.storage;
 
 import dev.herade.moderationgui.service.ModerationService;
+import dev.herade.moderationgui.service.RankService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,6 +125,25 @@ class StorageRepositoryTest {
         assertTrue(punishments.revoke(permanent));
         assertFalse(punishments.revoke(temporary));
         assertTrue(punishments.findActiveForPlayer("player-uuid", 250).isEmpty());
+    }
+
+    @Test
+    void rankServiceAuditsCreateUpdateAssignAndUnassign() throws Exception {
+        players.recordJoin("player-uuid", "PlayerOne", 100);
+        RankService service = new RankService(database, ranks, activityLog);
+        long rankId = service.create("Helper", "[H]", "aqua", 20, "staff-uuid", 200);
+
+        service.assign("player-uuid", rankId, "staff-uuid", 210);
+        assertEquals(1, ranks.findForPlayer("player-uuid").size());
+
+        service.update(rankId, "[HELPER]", "gold", 25, "staff-uuid", 220);
+        assertEquals("[HELPER]", ranks.findByName("Helper").orElseThrow().prefix());
+        assertEquals(25, ranks.findAll().getFirst().priority());
+
+        assertTrue(service.unassign("player-uuid", rankId, "staff-uuid", 230));
+        assertTrue(service.delete(rankId, "staff-uuid", 240));
+        assertEquals(0, ranks.findAll().size());
+        assertEquals("RANK_DELETED", activityLog.recent(1).getFirst().action());
     }
 
     @Test
