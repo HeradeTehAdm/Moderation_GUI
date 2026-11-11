@@ -6,6 +6,7 @@ import dev.herade.moderationgui.storage.PunishmentRepository;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Optional;
 
 /**
  * Координирует изменения модерации и аудита в одной транзакции.
@@ -40,9 +41,13 @@ public final class ModerationService {
 
     public boolean revokePunishment(long punishmentId, String moderatorUuid, long timestamp) throws SQLException {
         return inTransaction(() -> {
+            Optional<PunishmentRepository.Punishment> existing = punishments.findById(punishmentId);
+            if (existing.isEmpty() || !existing.get().active()) return false;
+
             boolean revoked = punishments.revoke(punishmentId);
             if (revoked) {
-                activityLog.record(moderatorUuid, "PUNISHMENT_REVOKED", null,
+                activityLog.record(moderatorUuid, "PUNISHMENT_REVOKED",
+                        existing.get().playerUuid(),
                         "Punishment #" + punishmentId + " revoked", timestamp);
             }
             return revoked;
