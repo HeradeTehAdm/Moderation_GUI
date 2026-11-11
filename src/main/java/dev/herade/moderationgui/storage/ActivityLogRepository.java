@@ -22,6 +22,9 @@ public final class ActivityLogRepository {
         if (action == null || action.isBlank() || action.length() > 64) {
             throw new IllegalArgumentException("Action must contain 1-64 characters");
         }
+        if (targetUuid != null && !targetUuid.isBlank() && targetUuid.trim().length() > 36) {
+            throw new IllegalArgumentException("Target UUID cannot exceed 36 characters");
+        }
         String safeDetails = details == null ? "" : details;
         if (safeDetails.length() > 2000) throw new IllegalArgumentException("Activity details cannot exceed 2000 characters");
 
