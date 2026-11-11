@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.herade.moderationgui.ModerationGui;
+import dev.herade.moderationgui.edition.EditionManager;
 import dev.herade.moderationgui.storage.PlayerRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
 import dev.herade.moderationgui.storage.RankRepository;
@@ -34,6 +35,8 @@ public final class ModerationCommands {
                 .executes(context -> showHelp(context.getSource()))
                 .then(Commands.literal("help")
                         .executes(context -> showHelp(context.getSource())))
+                .then(Commands.literal("edition")
+                        .executes(context -> showEdition(context.getSource())))
                 .then(Commands.literal("profile")
                         .requires(source -> canUse(source, "moderation.players.view"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -387,9 +390,28 @@ public final class ModerationCommands {
         }
     }
 
+
+    private static int showEdition(CommandSourceStack source) {
+        var edition = EditionManager.current();
+        var features = EditionManager.availableFeatures();
+        source.sendSuccess(() -> Component.literal(
+                "Moderation GUI edition: " + edition.name()
+                        + " | Available features: " + features.size()), false);
+        for (var feature : dev.herade.moderationgui.edition.EditionFeature.values()) {
+            boolean available = features.contains(feature);
+            source.sendSuccess(() -> Component.literal(
+                    (available ? "[AVAILABLE] " : "[PRO] ") + feature.name()), false);
+        }
+        if (edition == dev.herade.moderationgui.edition.Edition.PRO) {
+            source.sendSuccess(() -> Component.literal(
+                    "Pro build channel: preview. Commercial license validation is not enabled yet."), false);
+        }
+        return 1;
+    }
+
     private static int showHelp(CommandSourceStack source) {
         source.sendSuccess(() -> Component.literal(
-                "Moderation GUI: /moderationgui profile <player>, history <player>, "
+                "Moderation GUI: /moderationgui edition, profile <player>, history <player>, "
                         + "rank list|create|edit|delete|assign|unassign|parent, note <player> <notes>, "
                         + "activity, kick <player> <reason>, "
                         + "permission rank|player <target> <node> <grant|deny|remove>, "
