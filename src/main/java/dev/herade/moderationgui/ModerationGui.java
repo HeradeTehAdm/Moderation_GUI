@@ -6,6 +6,7 @@ import dev.herade.moderationgui.storage.PermissionRepository;
 import dev.herade.moderationgui.storage.PlayerRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
 import dev.herade.moderationgui.storage.RankRepository;
+import dev.herade.moderationgui.service.ModerationService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ public final class ModerationGui implements ModInitializer {
     private static PermissionRepository permissions;
     private static PunishmentRepository punishments;
     private static ActivityLogRepository activityLog;
+    private static ModerationService moderation;
 
     @Override
     public void onInitialize() {
@@ -35,6 +37,7 @@ public final class ModerationGui implements ModInitializer {
                 permissions = new PermissionRepository(database);
                 punishments = new PunishmentRepository(database);
                 activityLog = new ActivityLogRepository(database);
+                moderation = new ModerationService(database, punishments, activityLog);
 
                 LOGGER.info("Moderation GUI storage and repositories initialized.");
             } catch (Exception exception) {
@@ -56,6 +59,7 @@ public final class ModerationGui implements ModInitializer {
             permissions = null;
             punishments = null;
             activityLog = null;
+            moderation = null;
         });
 
         LOGGER.info("Moderation GUI initialized. Command and client GUI modules are under development.");
@@ -84,6 +88,11 @@ public final class ModerationGui implements ModInitializer {
     public static PunishmentRepository punishments() {
         if (punishments == null) throw new IllegalStateException("Punishment repository is not available before server startup");
         return punishments;
+    }
+
+    public static ModerationService moderation() {
+        if (moderation == null) throw new IllegalStateException("Moderation service is not available before server startup");
+        return moderation;
     }
 
     public static ActivityLogRepository activityLog() {
