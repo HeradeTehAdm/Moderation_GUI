@@ -8,6 +8,7 @@
 |---|---|
 | `/moderationgui profile <player>` | Показать профиль игрока |
 | `/moderationgui history <player>` | Показать последние 20 наказаний игрока |
+| `/moderationgui note <player> <notes>` | Обновить заметки профиля с записью в аудит |
 
 Игрок должен хотя бы один раз подключиться к серверу, чтобы его профиль появился в базе.
 
@@ -21,6 +22,7 @@
 | `/moderationgui ban <player> <reason>` | Выдать постоянный BAN |
 | `/moderationgui tempban <player> <seconds> <reason>` | Выдать временный BAN |
 | `/moderationgui kick <player> <reason>` | Отключить игрока без создания наказания |
+| `/moderationgui activity` | Показать последние 20 записей Activity Log |
 | `/moderationgui unpunish <id>` | Снять наказание по его ID |
 
 Временные сроки указываются в секундах; максимальный срок одной команды — 365 дней. BAN отключает игрока сразу, если тот онлайн, и проверяется при следующем подключении. MUTE блокирует публичный чат и широковещательные командные сообщения. Приватные сообщения, которые реализуют другие моды, этим обработчиком не перехватываются.
@@ -31,6 +33,8 @@
 |---|---|
 | `/moderationgui rank list` | Список рангов |
 | `/moderationgui rank create <name> <priority> <prefix> <color>` | Создать ранг |
+| `/moderationgui rank edit <name> <priority> <prefix> <color>` | Изменить параметры ранга |
+| `/moderationgui rank parent <child> <parent|none>` | Настроить наследование ранга |
 | `/moderationgui rank delete <name>` | Удалить ранг |
 | `/moderationgui rank assign <player> <rank>` | Назначить ранг |
 | `/moderationgui rank unassign <player> <rank>` | Снять ранг |
@@ -57,6 +61,7 @@
 Уровень оператора Minecraft 2 и выше может выполнять административные команды. Остальные игроки проверяются сервером по узлам:
 
 - `moderation.players.view`
+- `moderation.players.edit`
 - `moderation.history.view`
 - `moderation.warn`
 - `moderation.mute`
@@ -69,6 +74,8 @@
 - `moderation.ranks.create`
 - `moderation.ranks.delete`
 - `moderation.ranks.assign`
+- `moderation.ranks.edit`
+- `moderation.activity.view`
 - `moderation.permissions.view`
 - `moderation.permissions.manage`
 
