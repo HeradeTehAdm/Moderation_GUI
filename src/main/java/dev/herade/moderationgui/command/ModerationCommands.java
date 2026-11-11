@@ -78,6 +78,36 @@ public final class ModerationCommands {
                                                         StringArgumentType.getString(context, "player"),
                                                         StringArgumentType.getString(context, "rank"))))))
                 )
+                .then(Commands.literal("permission")
+                        .then(Commands.literal("rank")
+                                .requires(source -> canUse(source, "moderation.permissions.manage"))
+                                .then(Commands.argument("rank", StringArgumentType.word())
+                                        .then(Commands.argument("node", StringArgumentType.word())
+                                                .then(Commands.argument("action", StringArgumentType.word())
+                                                        .executes(context -> changeRankPermission(context.getSource(),
+                                                                StringArgumentType.getString(context, "rank"),
+                                                                StringArgumentType.getString(context, "node"),
+                                                                StringArgumentType.getString(context, "action"))))))
+                        .then(Commands.literal("player")
+                                .requires(source -> canUse(source, "moderation.permissions.manage"))
+                                .then(Commands.argument("player", StringArgumentType.word())
+                                        .then(Commands.argument("node", StringArgumentType.word())
+                                                .then(Commands.argument("action", StringArgumentType.word())
+                                                        .executes(context -> changePlayerPermission(context.getSource(),
+                                                                StringArgumentType.getString(context, "player"),
+                                                                StringArgumentType.getString(context, "node"),
+                                                                StringArgumentType.getString(context, "action"))))))
+                        .then(Commands.literal("ranklist")
+                                .requires(source -> canUse(source, "moderation.permissions.view"))
+                                .then(Commands.argument("rank", StringArgumentType.word())
+                                        .executes(context -> listRankPermissions(context.getSource(),
+                                                StringArgumentType.getString(context, "rank")))))
+                        .then(Commands.literal("playerlist")
+                                .requires(source -> canUse(source, "moderation.permissions.view"))
+                                .then(Commands.argument("player", StringArgumentType.word())
+                                        .executes(context -> listPlayerPermissions(context.getSource(),
+                                                StringArgumentType.getString(context, "player")))))
+                )
                 .then(Commands.literal("warn")
                         .requires(source -> canUse(source, "moderation.warn"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -129,6 +159,109 @@ public final class ModerationCommands {
                                         LongArgumentType.getLong(context, "id"))))));
     }
 
+
+
+    private static int changeRankPermission(CommandSourceStack source, String rankName,
+                                            String node, String action) {
+        try {
+            var rank = ModerationGui.ranks().findByName(rankName);
+            if (rank.isEmpty()) {
+                source.sendFailure(Component.literal("Rank not found: " + rankName));
+                return 0;
+            }
+            switch (action.toLowerCase(java.util.Locale.ROOT)) {
+                case "grant" -> ModerationGui.permissionService().setRankRule(
+                        rank.get().id(), node, true, actorUuid(source), System.currentTimeMillis());
+                case "deny" -> ModerationGui.permissionService().setRankRule(
+                        rank.get().id(), node, false, actorUuid(source), System.currentTimeMillis());
+                case "remove" -> {
+                    if (!ModerationGui.permissionService().removeRankRule(
+                            rank.get().id(), node, actorUuid(source), System.currentTimeMillis())) {
+                        source.sendFailure(Component.literal("Permission rule not found."));
+                        return 0;
+                    }
+                }
+                default -> {
+                    source.sendFailure(Component.literal("Action must be grant, deny or remove."));
+                    return 0;
+                }
+            }
+            source.sendSuccess(() -> Component.literal(
+                    "Permission rule " + action + " applied to rank " + rankName + ": " + node), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not update rank permission.", exception);
+        }
+    }
+
+    private static int changePlayerPermission(CommandSourceStack source, String playerName,
+                                              String node, String action) {
+        try {
+            PlayerRepository.Player player = findPlayer(playerName).orElse(null);
+            if (player == null) {
+                source.sendFailure(Component.literal("Player profile not found: " + playerName));
+                return 0;
+            }
+            switch (action.toLowerCase(java.util.Locale.ROOT)) {
+                case "grant" -> ModerationGui.permissionService().setPlayerRule(
+                        player.uuid(), node, true, actorUuid(source), System.currentTimeMillis());
+                case "deny" -> ModerationGui.permissionService().setPlayerRule(
+                        player.uuid(), node, false, actorUuid(source), System.currentTimeMillis());
+                case "remove" -> {
+                    if (!ModerationGui.permissionService().removePlayerRule(
+                            player.uuid(), node, actorUuid(source), System.currentTimeMillis())) {
+                        source.sendFailure(Component.literal("Permission rule not found."));
+                        return 0;
+                    }
+                }
+                default -> {
+                    source.sendFailure(Component.literal("Action must be grant, deny or remove."));
+                    return 0;
+                }
+            }
+            source.sendSuccess(() -> Component.literal(
+                    "Permission rule " + action + " applied to " + player.lastName() + ": " + node), true);
+            return 1;
+        } catch (SQLException | IllegalArgumentException exception) {
+            return reportFailure(source, "Could not update player permission.", exception);
+        }
+    }
+
+    private static int listRankPermissions(CommandSourceStack source, String rankName) {
+        try {
+            var rank = ModerationGui.ranks().findByName(rankName);
+            if (rank.isEmpty()) {
+                source.sendFailure(Component.literal("Rank not found: " + rankName));
+                return 0;
+            }
+            var rules = ModerationGui.permissions().findRankPermissions(rank.get().id());
+            source.sendSuccess(() -> Component.literal(
+                    "Permission rules for rank " + rankName + " (" + rules.size() + "):"), false);
+            rules.forEach(rule -> source.sendSuccess(() -> Component.literal(
+                    (rule.allowed() ? "ALLOW " : "DENY ") + rule.node()), false));
+            return rules.size();
+        } catch (SQLException exception) {
+            return reportFailure(source, "Could not load rank permissions.", exception);
+        }
+    }
+
+    private static int listPlayerPermissions(CommandSourceStack source, String playerName) {
+        try {
+            PlayerRepository.Player player = findPlayer(playerName).orElse(null);
+            if (player == null) {
+                source.sendFailure(Component.literal("Player profile not found: " + playerName));
+                return 0;
+            }
+            var rules = ModerationGui.permissions().findPlayerPermissions(player.uuid());
+            source.sendSuccess(() -> Component.literal(
+                    "Personal permission rules for " + player.lastName() + " (" + rules.size() + "):"), false);
+            rules.forEach(rule -> source.sendSuccess(() -> Component.literal(
+                    (rule.allowed() ? "ALLOW " : "DENY ") + rule.node()), false));
+            return rules.size();
+        } catch (SQLException exception) {
+            return reportFailure(source, "Could not load player permissions.", exception);
+        }
+    }
 
     private static int listRanks(CommandSourceStack source) {
         try {
@@ -221,7 +354,7 @@ public final class ModerationCommands {
     private static int showHelp(CommandSourceStack source) {
         source.sendSuccess(() -> Component.literal(
                 "Moderation GUI: /moderationgui profile <player>, history <player>, "
-                        + "rank list|create|delete|assign|unassign, "
+                        + "rank list|create|delete|assign|unassign, permission rank|player <target> <node> <grant|deny|remove>, "
                         + "warn <player> <reason>, mute <player> <reason>, "
                         + "ban <player> <reason>, tempban <player> <seconds> <reason>, "
                         + "tempmute <player> <seconds> <reason>, unpunish <id>"), false);
