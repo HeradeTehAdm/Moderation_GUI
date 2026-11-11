@@ -44,7 +44,11 @@ public final class ModerationGui implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             if (database != null) {
-                database.close();
+                try {
+                    database.close();
+                } catch (Exception exception) {
+                    LOGGER.error("Could not close Moderation GUI database cleanly.", exception);
+                }
             }
             database = null;
             players = null;
