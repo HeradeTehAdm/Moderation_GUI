@@ -1,5 +1,6 @@
 package dev.herade.moderationgui.storage;
 
+import dev.herade.moderationgui.service.ModerationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -113,6 +114,31 @@ class StorageRepositoryTest {
         assertTrue(punishments.revoke(permanent));
         assertFalse(punishments.revoke(temporary));
         assertTrue(punishments.findActiveForPlayer("player-uuid", 250).isEmpty());
+    }
+
+    @Test
+    void moderationServiceWritesPunishmentAndAuditTogether() throws Exception {
+        ModerationService service = new ModerationService(database, punishments, activityLog);
+        long punishmentId = service.issuePunishment("player-uuid", "PlayerOne",
+                PunishmentRepository.Type.WARN, "Please follow the rules",
+                "staff-uuid", 300, null);
+
+        assertEquals(1, punishments.findActiveForPlayer("player-uuid", 300).size());
+        ActivityLogRepository.Entry entry = activityLog.recent(1).getFirst();
+        assertEquals("PUNISHMENT_WARN", entry.action());
+        assertTrue(entry.details().contains("Punishment #" + punishmentId));
+
+        assertTrue(service.revokePunishment(punishmentId, "staff-uuid", 400));
+        assertEquals(0, punishments.findActiveForPlayer("player-uuid", 400).size());
+        assertEquals("PUNISHMENT_REVOKED", activityLog.recent(1).getFirst().action());
+    }
+
+    @Test
+    void permissionNodesRejectMalformedInput() {
+        assertThrows(IllegalArgumentException.class,
+                () -> permissions.setRankPermission(1, "moderation..ban", true));
+        assertThrows(IllegalArgumentException.class,
+                () -> permissions.hasPermission("player-uuid", "moderation.*"));
     }
 
     @Test
