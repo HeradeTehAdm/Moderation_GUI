@@ -14,6 +14,9 @@ public final class ModerationServerNetworking {
             String content = section == null || section.length() > 32
                     ? "Invalid section request."
                     : ModerationDataService.load(player, section);
+            if (content.length() > 28000) {
+                content = content.substring(0, 27970) + " | output truncated";
+            }
             ServerPlayNetworking.send(player, new SectionDataPayload(
                     section == null ? "" : section, content));
         });
