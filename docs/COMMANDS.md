@@ -63,6 +63,7 @@
 - `moderation.players.view`
 - `moderation.players.edit`
 - `moderation.history.view`
+- `moderation.punishments.view`
 - `moderation.warn`
 - `moderation.mute`
 - `moderation.ban`
@@ -76,6 +77,7 @@
 - `moderation.ranks.assign`
 - `moderation.ranks.edit`
 - `moderation.activity.view`
+- `moderation.settings.view`
 - `moderation.permissions.view`
 - `moderation.permissions.manage`
 
