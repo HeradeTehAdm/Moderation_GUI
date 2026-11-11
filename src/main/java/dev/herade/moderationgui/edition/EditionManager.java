@@ -20,7 +20,7 @@ public final class EditionManager {
     }
 
     public static boolean has(EditionFeature feature) {
-        return CURRENT.ordinal() >= feature.minimumEdition().ordinal();
+        return feature.implemented() && CURRENT.ordinal() >= feature.minimumEdition().ordinal();
     }
 
     public static Set<EditionFeature> availableFeatures() {
