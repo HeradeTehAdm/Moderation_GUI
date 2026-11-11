@@ -14,7 +14,7 @@ public final class PlayerLifecycleEvents {
             try {
                 PlayerRepository repository = ModerationGui.players();
                 repository.recordJoin(player.getUUID().toString(),
-                        player.getGameProfile().getName(), System.currentTimeMillis());
+                        player.getName().getString(), System.currentTimeMillis());
 
                 ModerationGui.punishments()
                         .findActiveForPlayer(player.getUUID().toString(), System.currentTimeMillis())
