@@ -79,7 +79,7 @@ public final class PermissionRepository {
                 while (result.next()) {
                     String pattern = result.getString("permission_node");
                     if (!matches(pattern, requested)) continue;
-                    Candidate candidate = new Candidate(specificity(pattern), Integer.MAX_VALUE,
+                    Candidate candidate = new Candidate(specificity(pattern), 0, Integer.MAX_VALUE,
                             result.getInt("allowed") == 1);
                     best = choose(best, candidate);
                 }
@@ -113,8 +113,8 @@ public final class PermissionRepository {
                                 while (rules.next()) {
                                     String pattern = rules.getString("permission_node");
                                     if (!matches(pattern, requested)) continue;
-                                    Candidate candidate = new Candidate(specificity(pattern),
-                                            rankPriority - (depth - 1), rules.getInt("allowed") == 1);
+                                    Candidate candidate = new Candidate(specificity(pattern), depth - 1,
+                                            rankPriority, rules.getInt("allowed") == 1);
                                     best = choose(best, candidate);
                                 }
                             }
@@ -139,6 +139,8 @@ public final class PermissionRepository {
         if (current == null) return next;
         if (next.specificity() > current.specificity()) return next;
         if (next.specificity() < current.specificity()) return current;
+        if (next.inheritanceDepth() < current.inheritanceDepth()) return next;
+        if (next.inheritanceDepth() > current.inheritanceDepth()) return current;
         if (next.rankPriority() > current.rankPriority()) return next;
         if (next.rankPriority() < current.rankPriority()) return current;
         // При равной специфичности и приоритете явный запрет безопаснее разрешения.
@@ -178,5 +180,5 @@ public final class PermissionRepository {
         return normalized;
     }
 
-    private record Candidate(int specificity, int rankPriority, boolean allowed) { }
+    private record Candidate(int specificity, int inheritanceDepth, int rankPriority, boolean allowed) { }
 }
