@@ -11,6 +11,10 @@ class EditionTest {
         assertTrue(EditionFeature.PUNISHMENTS.minimumEdition() == Edition.FREE);
         assertTrue(EditionFeature.RANKS_AND_PERMISSIONS.minimumEdition() == Edition.FREE);
         assertTrue(EditionFeature.ACTIVITY_LOG.minimumEdition() == Edition.FREE);
+        assertTrue(EditionFeature.PLAYER_PROFILES.implemented());
+        assertTrue(EditionFeature.PUNISHMENTS.implemented());
+        assertTrue(EditionFeature.RANKS_AND_PERMISSIONS.implemented());
+        assertTrue(EditionFeature.ACTIVITY_LOG.implemented());
     }
 
     @Test
@@ -19,6 +23,10 @@ class EditionTest {
         assertEquals(Edition.PRO, EditionFeature.AUDIT_EXPORT.minimumEdition());
         assertEquals(Edition.PRO, EditionFeature.BULK_MODERATION.minimumEdition());
         assertEquals(Edition.PRO, EditionFeature.CUSTOM_GUI_THEMES.minimumEdition());
+        assertFalse(EditionFeature.ADVANCED_ANALYTICS.implemented());
+        assertFalse(EditionFeature.AUDIT_EXPORT.implemented());
+        assertFalse(EditionFeature.BULK_MODERATION.implemented());
+        assertFalse(EditionFeature.CUSTOM_GUI_THEMES.implemented());
     }
 
     @Test
