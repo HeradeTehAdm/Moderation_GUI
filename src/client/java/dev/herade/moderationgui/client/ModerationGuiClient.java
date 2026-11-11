@@ -1,11 +1,11 @@
 package dev.herade.moderationgui.client;
 
 import dev.herade.moderationgui.client.screen.ModerationScreen;
+import dev.herade.moderationgui.client.ModerationClientNetworking;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping.Category;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
@@ -16,6 +16,7 @@ public final class ModerationGuiClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ModerationClientNetworking.register();
         openMenu = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.moderation_gui.open",
                 InputConstants.Type.KEYSYM,
