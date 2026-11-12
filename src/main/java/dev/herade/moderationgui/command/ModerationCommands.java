@@ -39,6 +39,16 @@ public final class ModerationCommands {
                         .executes(context -> showHelp(context.getSource())))
                 .then(Commands.literal("edition")
                         .executes(context -> showEdition(context.getSource())))
+                .then(Commands.literal("settings")
+                        .requires(source -> canUse(source, "moderation.settings.view"))
+                        .executes(context -> showSettings(context.getSource()))
+                        .then(Commands.literal("set")
+                                .requires(source -> canUse(source, "moderation.settings.edit"))
+                                .then(Commands.argument("key", StringArgumentType.word())
+                                        .then(Commands.argument("value", StringArgumentType.word())
+                                                .executes(context -> setSetting(context.getSource(),
+                                                        StringArgumentType.getString(context, "key"),
+                                                        StringArgumentType.getString(context, "value"))))))
                 .then(Commands.literal("export")
                         .requires(source -> canUse(source, "moderation.export")
                                 && EditionManager.has(EditionFeature.AUDIT_EXPORT))
@@ -208,6 +218,30 @@ public final class ModerationCommands {
     }
 
 
+
+    private static int showSettings(CommandSourceStack source) {
+        try {
+            source.sendSuccess(() -> Component.literal(String.join("\n",
+                    ModerationGui.settings().describe())), false);
+            return 1;
+        } catch (IllegalStateException exception) {
+            return reportFailure(source, "Could not load server settings.", exception);
+        }
+    }
+
+    private static int setSetting(CommandSourceStack source, String key, String value) {
+        try {
+            ModerationGui.settings().set(key, value);
+            ModerationGui.moderation().recordAction(actorUuid(source), "SETTING_UPDATED",
+                    null, key + "=" + value.toLowerCase(java.util.Locale.ROOT),
+                    System.currentTimeMillis());
+            source.sendSuccess(() -> Component.literal(
+                    "Setting " + key + " updated to " + value.toLowerCase(java.util.Locale.ROOT) + "."), true);
+            return 1;
+        } catch (java.io.IOException | IllegalArgumentException | SQLException exception) {
+            return reportFailure(source, "Could not update server setting.", exception);
+        }
+    }
 
     private static int changeRankPermission(CommandSourceStack source, String rankName,
                                             String node, String action) {
