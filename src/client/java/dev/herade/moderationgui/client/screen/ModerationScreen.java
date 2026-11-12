@@ -39,6 +39,8 @@ public final class ModerationScreen extends Screen {
     private EditBox permissionTargetTypeInput;
     private EditBox permissionTargetInput;
     private EditBox permissionNodeInput;
+    private EditBox settingKeyInput;
+    private EditBox settingValueInput;
 
     public ModerationScreen() {
         this("Players");
@@ -232,6 +234,25 @@ public final class ModerationScreen extends Screen {
             }
         }
 
+        if (selectedSection.equals("Settings")) {
+            if (this.height >= 400) {
+                int formY = contentY + 48;
+                int gapX = 8;
+                int fieldWidth = Math.max(110, Math.min(190, (this.width - 60 - gapX) / 2));
+                int rowWidth = fieldWidth * 2 + gapX;
+                int x = (this.width - rowWidth) / 2;
+                settingKeyInput = addInput(x, formY, fieldWidth,
+                        "Setting key", 32, "enforce_mutes");
+                settingValueInput = addInput(x + fieldWidth + gapX, formY,
+                        fieldWidth, "Value: true/false", 5, "true");
+                addActionButton(this.width / 2 - 70, formY + 28, 140,
+                        "Save Setting", this::saveSetting);
+            } else {
+                contentWidget.setMessage(Component.literal(
+                        "Increase the game window height to edit server settings."));
+            }
+        }
+
         int footerY = this.height - 28;
         int footerWidth = Math.min(76, Math.max(58, (this.width - 36) / 5));
         int footerGap = 4;
@@ -275,7 +296,8 @@ public final class ModerationScreen extends Screen {
 
     private boolean isManagementSection() {
         return selectedSection.equals("Players") || selectedSection.equals("Ranks")
-                || selectedSection.equals("Permissions") || selectedSection.equals("Punishments");
+                || selectedSection.equals("Permissions") || selectedSection.equals("Punishments")
+                || selectedSection.equals("Settings");
     }
 
     private void saveNotes() {
@@ -366,6 +388,18 @@ public final class ModerationScreen extends Screen {
             return;
         }
         runCommand("moderationgui permission " + type + " " + target + " " + node + " " + action);
+    }
+
+    private void saveSetting() {
+        if (settingKeyInput == null || settingValueInput == null) return;
+        String key = settingKeyInput.getValue().trim().toLowerCase(java.util.Locale.ROOT);
+        String value = settingValueInput.getValue().trim().toLowerCase(java.util.Locale.ROOT);
+        if ((!key.equals("enforce_bans") && !key.equals("enforce_mutes"))
+                || (!value.equals("true") && !value.equals("false"))) {
+            showMessage("Use enforce_bans or enforce_mutes and value true or false.");
+            return;
+        }
+        runCommand("moderationgui settings set " + key + " " + value);
     }
 
     private static boolean isInteger(String value) {
