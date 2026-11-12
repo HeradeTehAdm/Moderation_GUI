@@ -132,7 +132,7 @@ public final class ModerationDataService {
     }
 
     private static boolean hasAccess(ServerPlayer player, String permission) throws SQLException {
-        if (player.createCommandSourceStack().hasPermission(2)) return true;
+        if (player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) return true;
         return ModerationGui.permissions().hasPermission(player.getUUID().toString(), permission);
     }
 
