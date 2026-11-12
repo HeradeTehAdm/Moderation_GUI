@@ -472,7 +472,8 @@ public final class ModerationCommands {
 
     private static int showHelp(CommandSourceStack source) {
         source.sendSuccess(() -> Component.literal(
-                "Moderation GUI: /moderationgui edition, export [limit], profile <player>, history <player>, "
+                "Moderation GUI: /moderationgui edition, export [limit], settings [set <key> <true|false>], "
+                        + "profile <player>, history <player>, "
                         + "rank list|create|edit|delete|assign|unassign|parent, note <player> <notes>, "
                         + "activity, kick <player> <reason>, "
                         + "permission rank|player <target> <node> <grant|deny|remove>, "
