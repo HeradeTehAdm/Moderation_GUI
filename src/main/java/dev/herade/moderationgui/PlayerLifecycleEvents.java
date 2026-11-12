@@ -16,7 +16,8 @@ public final class PlayerLifecycleEvents {
                 repository.recordJoin(player.getUUID().toString(),
                         player.getName().getString(), System.currentTimeMillis());
 
-                ModerationGui.punishments()
+                if (ModerationGui.settings().enabled("enforce_bans")) {
+                    ModerationGui.punishments()
                         .findActiveForPlayer(player.getUUID().toString(), System.currentTimeMillis())
                         .stream()
                         .filter(punishment -> punishment.type()
@@ -25,6 +26,7 @@ public final class PlayerLifecycleEvents {
                         .ifPresent(punishment -> player.connection.disconnect(
                                 net.minecraft.network.chat.Component.literal(
                                         "You are banned from this server. Reason: " + punishment.reason())));
+                }
             } catch (Exception exception) {
                 ModerationGui.LOGGER.error("Could not save player join profile for {}.",
                         player.getUUID(), exception);
