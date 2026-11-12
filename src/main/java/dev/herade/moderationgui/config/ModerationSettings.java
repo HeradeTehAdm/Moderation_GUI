@@ -11,9 +11,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Хранит проверенные настройки сервера в отдельном properties-файле. */
 public final class ModerationSettings {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ModerationSettings.class);
     private static final Map<String, Boolean> DEFAULTS = Map.of(
             "enforce_bans", true,
             "enforce_mutes", true
@@ -37,7 +40,13 @@ public final class ModerationSettings {
             }
             for (String key : DEFAULTS.keySet()) {
                 String value = properties.getProperty(key);
-                if (value != null) values.put(key, parseBoolean(key, value));
+                if (value != null) {
+                    try {
+                        values.put(key, parseBoolean(key, value));
+                    } catch (IllegalArgumentException exception) {
+                        LOGGER.warn("Invalid value for setting '{}'; restoring its default.", key);
+                    }
+                }
             }
         }
         save();
