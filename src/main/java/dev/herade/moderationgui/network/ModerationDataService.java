@@ -31,12 +31,7 @@ public final class ModerationDataService {
                 case "Punishments" -> loadPunishments();
                 case "History" -> loadHistory();
                 case "Activity Log" -> loadActivity();
-                case "Settings" -> List.of(
-                        "Storage: SQLite",
-                        "Permission checks: server-authoritative",
-                        "Temporary punishment time unit: milliseconds",
-                        "Configuration editor: not implemented yet"
-                );
+                case "Settings" -> ModerationGui.settings().describe();
                 default -> List.of();
             };
             return rows.isEmpty() ? "No entries found." : String.join("\n", rows);
