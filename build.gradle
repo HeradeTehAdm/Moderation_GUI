@@ -68,6 +68,10 @@ processResources {
 }
 
 
+tasks.named('sourcesJar') {
+    dependsOn tasks.named('generateEditionMetadata')
+}
+
 tasks.test {
     useJUnitPlatform()
 }
