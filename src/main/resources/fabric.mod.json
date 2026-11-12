@@ -3,7 +3,7 @@
   "id": "moderation_gui",
   "version": "${version}",
   "name": "Moderation GUI",
-  "description": "Server-authoritative moderation tools, permissions and player management for Fabric.",
+  "description": "Серверная система модерации, прав доступа и управления игроками для Fabric.",
   "authors": ["HeradeTehAdm"],
   "license": "MIT",
   "environment": "*",
