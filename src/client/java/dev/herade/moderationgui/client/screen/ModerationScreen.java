@@ -9,6 +9,9 @@ import net.minecraft.client.gui.components.MultiLineTextWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.util.Arrays;
+import java.util.List;
+
 /** Навигационная оболочка Moderation GUI; данные разделов подключаются через серверные пакеты. */
 public final class ModerationScreen extends Screen {
     private static final String[] SECTIONS = {
@@ -18,6 +21,8 @@ public final class ModerationScreen extends Screen {
 
     private final String selectedSection;
     private String content = "Loading data from server...";
+    private List<String> contentLines = List.of(content);
+    private int contentPage;
     private MultiLineTextWidget contentWidget;
     private EditBox targetInput;
     private EditBox reasonInput;
@@ -228,23 +233,31 @@ public final class ModerationScreen extends Screen {
         }
 
         int footerY = this.height - 28;
-        int footerWidth = 96;
-        int footerGap = 8;
-        int footerStart = (this.width - (footerWidth * 3 + footerGap * 2)) / 2;
-        addRenderableWidget(Button.builder(Component.literal("Refresh"),
-                button -> requestSection())
+        int footerWidth = Math.min(76, Math.max(58, (this.width - 36) / 5));
+        int footerGap = 4;
+        int footerStart = (this.width - (footerWidth * 5 + footerGap * 4)) / 2;
+        addRenderableWidget(Button.builder(Component.literal("Previous"),
+                button -> changePage(-1))
                 .bounds(footerStart, footerY, footerWidth, 26).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Command Help"),
+        addRenderableWidget(Button.builder(Component.literal("Next"),
+                button -> changePage(1))
+                .bounds(footerStart + footerWidth + footerGap, footerY, footerWidth, 26).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Refresh"),
+                button -> requestSection())
+                .bounds(footerStart + (footerWidth + footerGap) * 2, footerY, footerWidth, 26).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Help"),
                 button -> {
                     if (this.minecraft.player != null) {
                         this.minecraft.player.connection.sendCommand("moderationgui help");
                     }
-                }).bounds(footerStart + footerWidth + footerGap, footerY, footerWidth, 26).build());
+                }).bounds(footerStart + (footerWidth + footerGap) * 3, footerY, footerWidth, 26).build());
 
         addRenderableWidget(Button.builder(Component.literal("Close"),
                 button -> this.onClose())
-                .bounds(footerStart + (footerWidth + footerGap) * 2, footerY, footerWidth, 26)
+                .bounds(footerStart + (footerWidth + footerGap) * 4, footerY, footerWidth, 26)
                 .build());
     }
 
@@ -365,8 +378,33 @@ public final class ModerationScreen extends Screen {
     }
 
     private void showMessage(String message) {
-        content = message;
-        if (contentWidget != null) contentWidget.setMessage(Component.literal(message));
+        setContent(message);
+    }
+
+    private void setContent(String value) {
+        content = value == null ? "No data received." : value;
+        contentLines = Arrays.asList(content.split("\\R", -1));
+        if (contentLines.isEmpty()) contentLines = List.of("No entries found.");
+        contentPage = 0;
+        renderContentPage();
+    }
+
+    private void changePage(int direction) {
+        int pageSize = isManagementSection() ? 3 : 8;
+        int pageCount = Math.max(1, (contentLines.size() + pageSize - 1) / pageSize);
+        contentPage = Math.max(0, Math.min(pageCount - 1, contentPage + direction));
+        renderContentPage();
+    }
+
+    private void renderContentPage() {
+        if (contentWidget == null) return;
+        int pageSize = isManagementSection() ? 3 : 8;
+        int pageCount = Math.max(1, (contentLines.size() + pageSize - 1) / pageSize);
+        int start = contentPage * pageSize;
+        int end = Math.min(contentLines.size(), start + pageSize);
+        String pageText = String.join("\\n", contentLines.subList(start, end));
+        contentWidget.setMessage(Component.literal(pageText + "\\nPage "
+                + (contentPage + 1) + "/" + pageCount));
     }
 
     private void addActionButton(int x, int y, int width, String label, Runnable action) {
@@ -416,8 +454,7 @@ public final class ModerationScreen extends Screen {
 
     private void requestSection() {
         if (this.minecraft.player != null) {
-            content = "Refreshing data from server...";
-            if (contentWidget != null) contentWidget.setMessage(Component.literal(content));
+            setContent("Refreshing data from server...");
             ClientPlayNetworking.send(new RequestSectionPayload(selectedSection));
         }
     }
@@ -437,10 +474,7 @@ public final class ModerationScreen extends Screen {
         Minecraft client = Minecraft.getInstance();
         if (client.screen instanceof ModerationScreen screen
                 && screen.selectedSection.equals(section)) {
-            screen.content = content == null ? "No data received." : content;
-            if (screen.contentWidget != null) {
-                screen.contentWidget.setMessage(Component.literal(screen.content));
-            }
+            screen.setContent(content);
         }
     }
 
