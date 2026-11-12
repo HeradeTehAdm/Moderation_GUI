@@ -390,7 +390,7 @@ public final class ModerationScreen extends Screen {
     }
 
     private void changePage(int direction) {
-        int pageSize = isManagementSection() ? 3 : 8;
+        int pageSize = isManagementSection() ? 2 : 7;
         int pageCount = Math.max(1, (contentLines.size() + pageSize - 1) / pageSize);
         contentPage = Math.max(0, Math.min(pageCount - 1, contentPage + direction));
         renderContentPage();
@@ -398,12 +398,12 @@ public final class ModerationScreen extends Screen {
 
     private void renderContentPage() {
         if (contentWidget == null) return;
-        int pageSize = isManagementSection() ? 3 : 8;
+        int pageSize = isManagementSection() ? 2 : 7;
         int pageCount = Math.max(1, (contentLines.size() + pageSize - 1) / pageSize);
         int start = contentPage * pageSize;
         int end = Math.min(contentLines.size(), start + pageSize);
-        String pageText = String.join("\\n", contentLines.subList(start, end));
-        contentWidget.setMessage(Component.literal(pageText + "\\nPage "
+        String pageText = String.join("\n", contentLines.subList(start, end));
+        contentWidget.setMessage(Component.literal(pageText + "\nPage "
                 + (contentPage + 1) + "/" + pageCount));
     }
 
