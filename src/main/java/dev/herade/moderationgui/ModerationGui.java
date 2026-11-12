@@ -1,6 +1,7 @@
 package dev.herade.moderationgui;
 
 import dev.herade.moderationgui.storage.ActivityLogRepository;
+import dev.herade.moderationgui.config.ModerationSettings;
 import dev.herade.moderationgui.network.ModerationNetworking;
 import dev.herade.moderationgui.network.ModerationServerNetworking;
 import dev.herade.moderationgui.storage.Database;
@@ -30,6 +31,7 @@ public final class ModerationGui implements ModInitializer {
     private static ModerationService moderation;
     private static RankService rankService;
     private static PermissionService permissionService;
+    private static ModerationSettings settings;
     private static boolean serverNetworkingRegistered;
 
     @Override
@@ -44,6 +46,9 @@ public final class ModerationGui implements ModInitializer {
                 database = new Database(server.getServerDirectory()
                         .resolve("moderation-gui").resolve("moderation.db"));
                 database.open();
+                settings = new ModerationSettings(server.getServerDirectory()
+                        .resolve("moderation-gui").resolve("settings.properties"));
+                settings.load();
 
                 players = new PlayerRepository(database);
                 ranks = new RankRepository(database);
@@ -81,6 +86,7 @@ public final class ModerationGui implements ModInitializer {
             moderation = null;
             rankService = null;
             permissionService = null;
+            settings = null;
         });
 
         LOGGER.info("Moderation GUI initialized. Server commands, moderation services and GUI networking are registered.");
@@ -124,6 +130,11 @@ public final class ModerationGui implements ModInitializer {
     public static ModerationService moderation() {
         if (moderation == null) throw new IllegalStateException("Moderation service is not available before server startup");
         return moderation;
+    }
+
+    public static ModerationSettings settings() {
+        if (settings == null) throw new IllegalStateException("Settings are not available before server startup");
+        return settings;
     }
 
     public static ActivityLogRepository activityLog() {
