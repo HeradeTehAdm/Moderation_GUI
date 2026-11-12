@@ -72,10 +72,6 @@ tasks.named('sourcesJar') {
     dependsOn tasks.named('generateEditionMetadata')
 }
 
-tasks.named('sourcesJar') {
-    dependsOn tasks.named('generateEditionMetadata')
-}
-
 tasks.test {
     useJUnitPlatform()
 }
