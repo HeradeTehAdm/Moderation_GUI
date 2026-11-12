@@ -7,6 +7,8 @@
 | Команда | Назначение |
 |---|---|
 | `/moderationgui edition` | Показать редакцию JAR и матрицу доступных возможностей |
+| `/moderationgui settings` | Показать текущие настройки сервера |
+| `/moderationgui settings set <key> <true|false>` | Изменить настройку сервера |
 | `/moderationgui export [limit]` | Pro: экспортировать до 200 последних записей Activity Log в CSV; по умолчанию 200 |
 
 ## Профили и история
@@ -63,6 +65,15 @@
 
 Примеры узлов: `moderation.ban`, `moderation.kick`, `moderation.*`, `*`.
 
+## Настройки сервера
+
+Настройки сохраняются в `moderation-gui/settings.properties` рядом с базой данных. Доступны два безопасных переключателя:
+
+- `enforce_bans` — проверять активные BAN при подключении игрока (по умолчанию `true`).
+- `enforce_mutes` — блокировать публичные сообщения активных MUTE (по умолчанию `true`).
+
+Изменения применяются сразу и сохраняются атомарной заменой файла. Доступ к просмотру требует `moderation.settings.view`, изменение — `moderation.settings.edit`.
+
 ## Проверка прав
 
 Уровень оператора Minecraft 2 и выше может выполнять административные команды. Остальные игроки проверяются сервером по узлам:
@@ -86,6 +97,7 @@
 - `moderation.activity.view`
 - `moderation.export` (только Pro)
 - `moderation.settings.view`
+- `moderation.settings.edit`
 - `moderation.permissions.view`
 - `moderation.permissions.manage`
 
