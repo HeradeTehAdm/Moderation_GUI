@@ -65,7 +65,7 @@ public final class ModerationScreen extends Screen {
             int y = firstRowY + row * 34;
 
             addRenderableWidget(Button.builder(Component.literal(section),
-                    button -> this.minecraft.setScreen(new ModerationScreen(section)))
+                    button -> this.minecraft.gui.setScreen(new ModerationScreen(section)))
                     .bounds(x, y, buttonWidth, 26)
                     .build());
         }
@@ -94,9 +94,9 @@ public final class ModerationScreen extends Screen {
             if (this.height >= 400) {
                 int formY = contentY + 44;
                 int fieldWidth = Math.max(120, Math.min(220, (this.width - 70) / 2));
-                int startX = (this.width - (fieldWidth * 2 + 8)) / 2;
-                notePlayerInput = addInput(startX, formY, fieldWidth, "Player", 16, "");
-                noteTextInput = addInput(startX + fieldWidth + 8, formY,
+                int notesStartX = (this.width - (fieldWidth * 2 + 8)) / 2;
+                notePlayerInput = addInput(notesStartX, formY, fieldWidth, "Player", 16, "");
+                noteTextInput = addInput(notesStartX + fieldWidth + 8, formY,
                         fieldWidth, "Profile notes", 2000, "");
                 addActionButton(this.width / 2 - 70, formY + 28, 140, "Save Notes", this::saveNotes);
             } else {
@@ -472,7 +472,7 @@ public final class ModerationScreen extends Screen {
 
     public static void receiveData(String section, String content) {
         Minecraft client = Minecraft.getInstance();
-        if (client.screen instanceof ModerationScreen screen
+        if (client.gui.screen() instanceof ModerationScreen screen
                 && screen.selectedSection.equals(section)) {
             screen.setContent(content);
         }
