@@ -230,11 +230,22 @@ public final class ModerationCommands {
     }
 
     private static int setSetting(CommandSourceStack source, String key, String value) {
+        boolean previous;
         try {
+            previous = ModerationGui.settings().enabled(key);
             ModerationGui.settings().set(key, value);
-            ModerationGui.moderation().recordAction(actorUuid(source), "SETTING_UPDATED",
-                    null, key + "=" + value.toLowerCase(java.util.Locale.ROOT),
-                    System.currentTimeMillis());
+            try {
+                ModerationGui.moderation().recordAction(actorUuid(source), "SETTING_UPDATED",
+                        null, key + "=" + value.toLowerCase(java.util.Locale.ROOT),
+                        System.currentTimeMillis());
+            } catch (SQLException auditException) {
+                try {
+                    ModerationGui.settings().set(key, Boolean.toString(previous));
+                } catch (java.io.IOException rollbackException) {
+                    auditException.addSuppressed(rollbackException);
+                }
+                throw auditException;
+            }
             source.sendSuccess(() -> Component.literal(
                     "Setting " + key + " updated to " + value.toLowerCase(java.util.Locale.ROOT) + "."), true);
             return 1;
