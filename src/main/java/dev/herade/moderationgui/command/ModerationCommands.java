@@ -48,7 +48,7 @@ public final class ModerationCommands {
                                         .then(Commands.argument("value", StringArgumentType.word())
                                                 .executes(context -> setSetting(context.getSource(),
                                                         StringArgumentType.getString(context, "key"),
-                                                        StringArgumentType.getString(context, "value"))))))
+                                                        StringArgumentType.getString(context, "value")))))))
                 .then(Commands.literal("export")
                         .requires(source -> canUse(source, "moderation.export")
                                 && EditionManager.has(EditionFeature.AUDIT_EXPORT))
