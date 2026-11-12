@@ -705,7 +705,7 @@ public final class ModerationCommands {
     }
 
     private static boolean canUse(CommandSourceStack source, String permission) {
-        if (source.hasPermission(2)) return true;
+        if (source.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) return true;
         if (!(source.getEntity() instanceof ServerPlayer player)) return true;
         try {
             return ModerationGui.permissions().hasPermission(player.getUUID().toString(), permission);
