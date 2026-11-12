@@ -28,6 +28,7 @@ public final class ModerationEnforcementEvents {
 
     private static boolean allowPublicChat(ServerPlayer player) {
         try {
+            if (!ModerationGui.settings().enabled("enforce_mutes")) return true;
             boolean muted = ModerationGui.punishments()
                     .findActiveForPlayer(player.getUUID().toString(), System.currentTimeMillis())
                     .stream()
