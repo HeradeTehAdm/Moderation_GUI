@@ -44,6 +44,18 @@ class ModerationSettingsTest {
     }
 
     @Test
+    void restoresSafeDefaultWhenStoredValueIsInvalid() throws Exception {
+        Path file = temporaryDirectory.resolve("settings.properties");
+        Files.writeString(file, "enforce_bans=maybe\nenforce_mutes=false\n");
+
+        ModerationSettings settings = new ModerationSettings(file);
+        settings.load();
+
+        assertTrue(settings.enabled("enforce_bans"));
+        assertFalse(settings.enabled("enforce_mutes"));
+    }
+
+    @Test
     void restoresDefaultsWhenSettingsFileIsMissing() throws Exception {
         Path file = temporaryDirectory.resolve("nested/settings.properties");
         ModerationSettings settings = new ModerationSettings(file);
