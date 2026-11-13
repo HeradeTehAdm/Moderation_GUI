@@ -16,8 +16,10 @@ import java.util.List;
 public final class ModerationDataService {
     private ModerationDataService() { }
 
-    public static String load(ServerPlayer viewer, String requestedSection) {
+    public static String load(ServerPlayer viewer, String requestedSection, String requestedFilter) {
         String section = requestedSection == null ? "" : requestedSection.trim();
+        String filter = requestedFilter == null ? "" : requestedFilter.trim()
+                .toLowerCase(java.util.Locale.ROOT);
         String permission = requiredPermission(section);
         if (permission == null) return "Unknown section.";
         try {
@@ -25,7 +27,7 @@ public final class ModerationDataService {
                 return "Access denied. Required permission: " + permission;
             }
             List<String> rows = switch (section) {
-                case "Players" -> loadPlayers();
+                case "Players" -> loadPlayers(filter);
                 case "Ranks" -> loadRanks();
                 case "Permissions" -> loadPermissions(viewer);
                 case "Punishments" -> loadPunishments();
@@ -34,6 +36,11 @@ public final class ModerationDataService {
                 case "Settings" -> ModerationGui.settings().describe();
                 default -> List.of();
             };
+            if (!filter.isEmpty() && !section.equals("Players")) {
+                rows = rows.stream()
+                        .filter(row -> row.toLowerCase(java.util.Locale.ROOT).contains(filter))
+                        .toList();
+            }
             return rows.isEmpty() ? "No entries found." : String.join("\n", rows);
         } catch (SQLException | RuntimeException exception) {
             ModerationGui.LOGGER.error("Could not load GUI section {} for {}.",
@@ -42,9 +49,9 @@ public final class ModerationDataService {
         }
     }
 
-    private static List<String> loadPlayers() throws SQLException {
+    private static List<String> loadPlayers(String filter) throws SQLException {
         List<String> rows = new ArrayList<>();
-        for (PlayerRepository.Player player : ModerationGui.players().searchByName("", 50)) {
+        for (PlayerRepository.Player player : ModerationGui.players().searchByName(filter, 50)) {
             rows.add(player.lastName() + " | " + player.uuid()
                     + " | Last seen: " + player.lastSeenAt());
         }
