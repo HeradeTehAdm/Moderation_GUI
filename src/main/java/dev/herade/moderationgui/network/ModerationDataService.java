@@ -66,8 +66,15 @@ public final class ModerationDataService {
     private static List<String> loadPlayers(String filter) throws SQLException {
         List<String> rows = new ArrayList<>();
         for (PlayerRepository.Player player : ModerationGui.players().searchByName(filter, 50)) {
+            String assignedRanks = ModerationGui.ranks().findForPlayer(player.uuid()).stream()
+                    .map(RankRepository.Rank::name)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            String notes = player.notes() == null || player.notes().isBlank()
+                    ? "None" : preview(player.notes(), 96);
             rows.add(player.lastName() + " | " + player.uuid()
-                    + " | Last seen: " + player.lastSeenAt());
+                    + " | Last seen: " + player.lastSeenAt()
+                    + " | Ranks: " + (assignedRanks.isBlank() ? "None" : assignedRanks)
+                    + " | Notes: " + notes);
         }
         return rows;
     }
@@ -152,6 +159,12 @@ public final class ModerationDataService {
     private static boolean hasAccess(ServerPlayer player, String permission) throws SQLException {
         if (player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) return true;
         return ModerationGui.permissions().hasPermission(player.getUUID().toString(), permission);
+    }
+
+    private static String preview(String value, int maxLength) {
+        String normalized = safe(value);
+        return normalized.length() <= maxLength
+                ? normalized : normalized.substring(0, maxLength - 1) + "…";
     }
 
     private static String safe(String value) {

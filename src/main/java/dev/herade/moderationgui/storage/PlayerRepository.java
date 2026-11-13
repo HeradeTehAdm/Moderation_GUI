@@ -83,11 +83,13 @@ public final class PlayerRepository {
                 SELECT uuid, last_name, first_joined_at, last_seen_at, notes
                 FROM players
                 WHERE instr(lower(last_name), ?) > 0
+                   OR instr(lower(uuid), ?) > 0
                 ORDER BY last_seen_at DESC
                 LIMIT ?
                 """)) {
             statement.setString(1, search);
-            statement.setInt(2, limit);
+            statement.setString(2, search);
+            statement.setInt(3, limit);
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) players.add(mapPlayer(result));
             }
