@@ -12,7 +12,8 @@ permissions:
 
 concurrency:
   group: moderation-gui-build-${{ github.ref }}
-  cancel-in-progress: true
+  # Не прерываем матричную сборку Free/Pro новым push; ожидающий запуск проверит следующий commit.
+  cancel-in-progress: false
 
 jobs:
   build:
