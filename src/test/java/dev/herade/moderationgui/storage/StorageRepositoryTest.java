@@ -71,6 +71,18 @@ class StorageRepositoryTest {
     }
 
     @Test
+    void playerSearchIsCaseInsensitiveAndTreatsWildcardsLiterally() throws Exception {
+        players.recordJoin("player-a", "Alpha_Player", 100);
+        players.recordJoin("player-b", "BetaPlayer", 200);
+
+        assertEquals(List.of("Alpha_Player"), players.searchByName("ALPHA", 10)
+                .stream().map(PlayerRepository.Player::lastName).toList());
+        assertTrue(players.searchByName("%", 10).isEmpty());
+        assertTrue(players.searchByName("_", 10).stream()
+                .allMatch(player -> player.lastName().contains("_")));
+    }
+
+    @Test
     void lastSeenTimestampNeverMovesBackwards() throws Exception {
         players.recordJoin("player-uuid", "PlayerOne", 500);
         players.updateLastSeen("player-uuid", 700);
