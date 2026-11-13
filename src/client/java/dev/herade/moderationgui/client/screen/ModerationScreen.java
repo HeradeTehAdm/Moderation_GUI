@@ -70,7 +70,10 @@ public final class ModerationScreen extends Screen {
             final String section = SECTIONS[index];
             int row = index / 4;
             int column = index % 4;
-            int x = startX + column * (buttonWidth + gap);
+            int itemsInRow = Math.min(4, SECTIONS.length - row * 4);
+            int rowWidth = itemsInRow * buttonWidth + (itemsInRow - 1) * gap;
+            int rowStart = (this.width - rowWidth) / 2;
+            int x = rowStart + column * (buttonWidth + gap);
             int y = firstRowY + row * 34;
 
             addRenderableWidget(Button.builder(Component.literal(section),
@@ -273,25 +276,25 @@ public final class ModerationScreen extends Screen {
             if (this.height >= 440) {
                 int formY = contentY + 44;
                 int gapX = 8;
-                int totalWidth = Math.min(460, this.width - 60);
-                int x = (this.width - totalWidth) / 2;
-                int durationWidth = Math.min(120, totalWidth / 3);
-                int reasonWidth = totalWidth - durationWidth - gapX;
-                bulkTargetsInput = addInput(x, formY, totalWidth,
+                int bulkTotalWidth = Math.min(460, this.width - 60);
+                int x = (this.width - bulkTotalWidth) / 2;
+                int durationWidth = Math.min(120, bulkTotalWidth / 3);
+                int reasonWidth = bulkTotalWidth - durationWidth - gapX;
+                bulkTargetsInput = addInput(x, formY, bulkTotalWidth,
                         "Players (comma-separated, max 25)", 450, "");
                 bulkDurationInput = addInput(x, formY + 27, durationWidth,
                         "Seconds (0 = permanent)", 10, "0");
                 bulkReasonInput = addInput(x + durationWidth + gapX, formY + 27,
                         reasonWidth, "Reason", 512, "");
-                int buttonWidth = 96;
+                int bulkButtonWidth = 96;
                 int buttonGap = 8;
-                int startX = (this.width - (buttonWidth * 3 + buttonGap * 2)) / 2;
+                int bulkStartX = (this.width - (bulkButtonWidth * 3 + buttonGap * 2)) / 2;
                 int actionY = formY + 55;
-                addActionButton(startX, actionY, buttonWidth, "Bulk Warn",
+                addActionButton(bulkStartX, actionY, bulkButtonWidth, "Bulk Warn",
                         () -> issueBulk("warn"));
-                addActionButton(startX + buttonWidth + buttonGap, actionY, buttonWidth, "Bulk Mute",
+                addActionButton(bulkStartX + bulkButtonWidth + buttonGap, actionY, bulkButtonWidth, "Bulk Mute",
                         () -> issueBulk("mute"));
-                addActionButton(startX + (buttonWidth + buttonGap) * 2, actionY, buttonWidth, "Bulk Ban",
+                addActionButton(bulkStartX + (bulkButtonWidth + buttonGap) * 2, actionY, bulkButtonWidth, "Bulk Ban",
                         () -> issueBulk("ban"));
             } else {
                 contentWidget.setMessage(Component.literal(
