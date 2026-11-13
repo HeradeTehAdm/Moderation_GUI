@@ -5,27 +5,26 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /** Обрабатывает клиентские запросы с ограничением частоты и размера ответа. */
 public final class ModerationServerNetworking {
-    private static final long REQUEST_INTERVAL_MS = 250;
+    private static final long REQUEST_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(250);
     private static final int MAX_RESPONSE_BYTES = 24 * 1024;
-    private static final Map<UUID, Long> LAST_REQUEST_AT = new HashMap<>();
+    private static final RequestThrottle REQUEST_THROTTLE =
+            new RequestThrottle(REQUEST_INTERVAL_NANOS);
 
     private ModerationServerNetworking() { }
 
     public static void register() {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                LAST_REQUEST_AT.remove(handler.getPlayer().getUUID()));
+                REQUEST_THROTTLE.remove(handler.getPlayer().getUUID()));
 
         ServerPlayNetworking.registerGlobalReceiver(RequestSectionPayload.TYPE, (payload, context) -> {
             ServerPlayer player = context.player();
-            long now = System.currentTimeMillis();
-            Long previous = LAST_REQUEST_AT.put(player.getUUID(), now);
-            if (previous != null && now - previous < REQUEST_INTERVAL_MS) {
+            long now = System.nanoTime();
+            if (!REQUEST_THROTTLE.tryAcquire(player.getUUID(), now)) {
                 return;
             }
 
