@@ -1,8 +1,13 @@
 package dev.herade.moderationgui.client.screen;
 
 import dev.herade.moderationgui.network.RequestSectionPayload;
+import dev.herade.moderationgui.edition.EditionFeature;
+import dev.herade.moderationgui.edition.EditionManager;
+import dev.herade.moderationgui.config.GuiTheme;
+import dev.herade.moderationgui.client.config.ClientThemeConfig;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.MultiLineTextWidget;
@@ -65,6 +70,17 @@ public final class ModerationScreen extends Screen {
         int startX = (this.width - totalWidth) / 2;
         int navigationRows = (SECTIONS.length + 3) / 4;
         int firstRowY = Math.max(42, this.height / 2 - (navigationRows * 34 + 80) / 2);
+
+        if (EditionManager.has(EditionFeature.CUSTOM_GUI_THEMES)) {
+            addRenderableWidget(Button.builder(
+                    Component.literal("Theme: " + ClientThemeConfig.current().displayName()),
+                    button -> {
+                        GuiTheme nextTheme = ClientThemeConfig.cycle();
+                        this.minecraft.gui.setScreen(new ModerationScreen(selectedSection));
+                    })
+                    .bounds(Math.max(4, this.width - 124), 8, 120, 20)
+                    .build());
+        }
 
         for (int index = 0; index < SECTIONS.length; index++) {
             final String section = SECTIONS[index];
@@ -608,6 +624,18 @@ public final class ModerationScreen extends Screen {
                 && screen.selectedSection.equals(section)) {
             screen.setContent(content);
         }
+    }
+
+
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (!EditionManager.has(EditionFeature.CUSTOM_GUI_THEMES)) {
+            super.renderBackground(graphics, mouseX, mouseY, partialTick);
+            return;
+        }
+        GuiTheme theme = ClientThemeConfig.current();
+        graphics.fillGradient(0, 0, this.width, this.height,
+                theme.topColor(), theme.bottomColor());
     }
 
     @Override

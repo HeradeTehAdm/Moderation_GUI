@@ -26,7 +26,7 @@ class EditionTest {
         assertTrue(EditionFeature.ADVANCED_ANALYTICS.implemented());
         assertTrue(EditionFeature.AUDIT_EXPORT.implemented());
         assertTrue(EditionFeature.BULK_MODERATION.implemented());
-        assertFalse(EditionFeature.CUSTOM_GUI_THEMES.implemented());
+        assertTrue(EditionFeature.CUSTOM_GUI_THEMES.implemented());
     }
 
     @Test

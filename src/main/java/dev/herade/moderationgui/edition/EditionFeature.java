@@ -9,7 +9,7 @@ public enum EditionFeature {
     ADVANCED_ANALYTICS(Edition.PRO, true),
     AUDIT_EXPORT(Edition.PRO, true),
     BULK_MODERATION(Edition.PRO, true),
-    CUSTOM_GUI_THEMES(Edition.PRO, false);
+    CUSTOM_GUI_THEMES(Edition.PRO, true);
 
     private final Edition minimumEdition;
     private final boolean implemented;
