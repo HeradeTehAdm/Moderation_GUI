@@ -43,6 +43,7 @@ public final class ModerationScreen extends Screen {
     private EditBox permissionNodeInput;
     private EditBox settingKeyInput;
     private EditBox settingValueInput;
+    private EditBox searchInput;
 
     public ModerationScreen() {
         this("Players");
@@ -74,7 +75,7 @@ public final class ModerationScreen extends Screen {
                     .build());
         }
 
-        int contentY = firstRowY + 76;
+        int contentY = firstRowY + 92;
         contentAreaTop = contentY;
         contentWidget = new MultiLineTextWidget(
                 (this.width - Math.max(120, this.width - 60)) / 2,
@@ -86,8 +87,16 @@ public final class ModerationScreen extends Screen {
                  ? 3 : Math.max(2, Math.min(8, (this.height - contentY - 52) / 10)));
         addRenderableWidget(contentWidget);
 
+        int searchWidth = Math.max(120, Math.min(220, this.width - 150));
+        int searchGroupWidth = searchWidth + 72;
+        int searchX = (this.width - searchGroupWidth) / 2;
+        searchInput = addInput(searchX, firstRowY + 66, searchWidth,
+                "Search entries", 64, "");
+        addActionButton(searchX + searchWidth + 8, firstRowY + 65,
+                64, "Search", this::requestSection);
+
         if (this.minecraft.player != null) {
-            ClientPlayNetworking.send(new RequestSectionPayload(selectedSection));
+            requestSection();
         } else {
             content = "Join a server to load moderation data.";
             contentWidget.setMessage(Component.literal(content));
@@ -503,7 +512,8 @@ public final class ModerationScreen extends Screen {
     private void requestSection() {
         if (this.minecraft.player != null) {
             setContent("Refreshing data from server...");
-            ClientPlayNetworking.send(new RequestSectionPayload(selectedSection));
+            String filter = searchInput == null ? "" : searchInput.getValue().trim();
+            ClientPlayNetworking.send(new RequestSectionPayload(selectedSection, filter));
         }
     }
 
