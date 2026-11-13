@@ -30,6 +30,10 @@ public final class ModerationDataService {
                     && !EditionManager.has(EditionFeature.ADVANCED_ANALYTICS)) {
                 return "Advanced Analytics is available in the Pro edition.";
             }
+            if (section.equals("Bulk Moderation")
+                    && !EditionManager.has(EditionFeature.BULK_MODERATION)) {
+                return "Bulk Moderation is available in the Pro edition.";
+            }
             if (!hasAccess(viewer, permission)) {
                 return "Access denied. Required permission: " + permission;
             }
@@ -43,6 +47,7 @@ public final class ModerationDataService {
                 case "Settings" -> ModerationGui.settings().describe();
                 case "Analytics" -> AdvancedAnalyticsService.generate(
                         ModerationGui.database(), System.currentTimeMillis());
+                case "Bulk Moderation" -> loadPunishments();
                 default -> List.of();
             };
             if (!filter.isEmpty() && !section.equals("Players")) {
@@ -139,6 +144,7 @@ public final class ModerationDataService {
             case "Settings" -> "moderation.settings.view";
             case "Activity Log" -> "moderation.activity.view";
             case "Analytics" -> "moderation.analytics.view";
+            case "Bulk Moderation" -> "moderation.bulk.use";
             default -> null;
         };
     }

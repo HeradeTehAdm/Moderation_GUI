@@ -16,7 +16,7 @@ import java.util.List;
 public final class ModerationScreen extends Screen {
     private static final String[] SECTIONS = {
             "Players", "Ranks", "Permissions", "Punishments",
-            "History", "Settings", "Activity Log", "Analytics"
+            "History", "Settings", "Activity Log", "Analytics", "Bulk Moderation"
     };
 
     private final String selectedSection;
@@ -44,6 +44,9 @@ public final class ModerationScreen extends Screen {
     private EditBox settingKeyInput;
     private EditBox settingValueInput;
     private EditBox searchInput;
+    private EditBox bulkTargetsInput;
+    private EditBox bulkDurationInput;
+    private EditBox bulkReasonInput;
 
     public ModerationScreen() {
         this("Players");
@@ -60,7 +63,8 @@ public final class ModerationScreen extends Screen {
         int buttonWidth = Math.max(64, Math.min(116, (this.width - 40 - gap * 3) / 4));
         int totalWidth = buttonWidth * 4 + gap * 3;
         int startX = (this.width - totalWidth) / 2;
-        int firstRowY = Math.max(54, this.height / 2 - 74);
+        int navigationRows = (SECTIONS.length + 3) / 4;
+        int firstRowY = Math.max(42, this.height / 2 - (navigationRows * 34 + 80) / 2);
 
         for (int index = 0; index < SECTIONS.length; index++) {
             final String section = SECTIONS[index];
@@ -75,7 +79,7 @@ public final class ModerationScreen extends Screen {
                     .build());
         }
 
-        int contentY = firstRowY + 92;
+        int contentY = firstRowY + navigationRows * 34 + 34;
         contentAreaTop = contentY;
         contentWidget = new MultiLineTextWidget(
                 (this.width - Math.max(120, this.width - 60)) / 2,
@@ -90,9 +94,9 @@ public final class ModerationScreen extends Screen {
         int searchWidth = Math.max(120, Math.min(220, this.width - 150));
         int searchGroupWidth = searchWidth + 72;
         int searchX = (this.width - searchGroupWidth) / 2;
-        searchInput = addInput(searchX, firstRowY + 66, searchWidth,
+        searchInput = addInput(searchX, firstRowY + navigationRows * 34 + 4, searchWidth,
                 "Search entries", 64, "");
-        addActionButton(searchX + searchWidth + 8, firstRowY + 65,
+        addActionButton(searchX + searchWidth + 8, firstRowY + navigationRows * 34 + 3,
                 64, "Search", this::requestSection);
 
         if (this.minecraft.player != null) {
@@ -265,6 +269,36 @@ public final class ModerationScreen extends Screen {
             }
         }
 
+        if (selectedSection.equals("Bulk Moderation")) {
+            if (this.height >= 440) {
+                int formY = contentY + 44;
+                int gapX = 8;
+                int totalWidth = Math.min(460, this.width - 60);
+                int x = (this.width - totalWidth) / 2;
+                int durationWidth = Math.min(120, totalWidth / 3);
+                int reasonWidth = totalWidth - durationWidth - gapX;
+                bulkTargetsInput = addInput(x, formY, totalWidth,
+                        "Players (comma-separated, max 25)", 450, "");
+                bulkDurationInput = addInput(x, formY + 27, durationWidth,
+                        "Seconds (0 = permanent)", 10, "0");
+                bulkReasonInput = addInput(x + durationWidth + gapX, formY + 27,
+                        reasonWidth, "Reason", 512, "");
+                int buttonWidth = 96;
+                int buttonGap = 8;
+                int startX = (this.width - (buttonWidth * 3 + buttonGap * 2)) / 2;
+                int actionY = formY + 55;
+                addActionButton(startX, actionY, buttonWidth, "Bulk Warn",
+                        () -> issueBulk("warn"));
+                addActionButton(startX + buttonWidth + buttonGap, actionY, buttonWidth, "Bulk Mute",
+                        () -> issueBulk("mute"));
+                addActionButton(startX + (buttonWidth + buttonGap) * 2, actionY, buttonWidth, "Bulk Ban",
+                        () -> issueBulk("ban"));
+            } else {
+                contentWidget.setMessage(Component.literal(
+                        "Increase the game window height to use bulk moderation."));
+            }
+        }
+
         int footerY = this.height - 28;
         contentAreaBottom = footerY;
         int footerWidth = Math.min(76, Math.max(58, (this.width - 36) / 5));
@@ -310,7 +344,7 @@ public final class ModerationScreen extends Screen {
     private boolean isManagementSection() {
         return selectedSection.equals("Players") || selectedSection.equals("Ranks")
                 || selectedSection.equals("Permissions") || selectedSection.equals("Punishments")
-                || selectedSection.equals("Settings");
+                || selectedSection.equals("Settings") || selectedSection.equals("Bulk Moderation");
     }
 
     private void saveNotes() {
@@ -458,6 +492,43 @@ public final class ModerationScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal(label), button -> action.run())
                 .bounds(x, y, width, 22)
                 .build());
+    }
+
+    private void issueBulk(String type) {
+        if (bulkTargetsInput == null || bulkDurationInput == null || bulkReasonInput == null) return;
+        String rawTargets = bulkTargetsInput.getValue().trim();
+        String reason = sanitize(bulkReasonInput.getValue());
+        if (rawTargets.isBlank() || reason.isBlank()) {
+            showMessage("Enter players and a reason.");
+            return;
+        }
+        String[] targets = rawTargets.split(",", -1);
+        if (targets.length < 1 || targets.length > 25) {
+            showMessage("Bulk moderation supports 1 to 25 players.");
+            return;
+        }
+        java.util.Set<String> unique = new java.util.HashSet<>();
+        for (String target : targets) {
+            String name = target.trim();
+            if (!name.matches("[A-Za-z0-9_]{1,16}")
+                    || !unique.add(name.toLowerCase(java.util.Locale.ROOT))) {
+                showMessage("Check player names: names must be valid and unique.");
+                return;
+            }
+        }
+        long seconds;
+        try {
+            seconds = Long.parseLong(bulkDurationInput.getValue().trim());
+            if (seconds < 0 || seconds > 31536000L || (type.equals("warn") && seconds != 0)) {
+                throw new NumberFormatException();
+            }
+        } catch (NumberFormatException exception) {
+            showMessage("Duration must be 0 to 31536000 seconds; WARN requires 0.");
+            return;
+        }
+        String names = java.util.Arrays.stream(targets).map(String::trim)
+                .collect(java.util.stream.Collectors.joining(","));
+        runCommand("moderationgui bulk " + type + " " + seconds + " " + names + " " + reason);
     }
 
     private void issue(String action, boolean temporary) {

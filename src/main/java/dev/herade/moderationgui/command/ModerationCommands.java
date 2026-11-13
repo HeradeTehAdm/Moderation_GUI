@@ -164,6 +164,19 @@ public final class ModerationCommands {
                         .requires(source -> canUse(source, "moderation.analytics.view")
                                 && EditionManager.has(EditionFeature.ADVANCED_ANALYTICS))
                         .executes(context -> showAnalytics(context.getSource())))
+                .then(Commands.literal("bulk")
+                        .requires(source -> canUse(source, "moderation.bulk.use")
+                                && EditionManager.has(EditionFeature.BULK_MODERATION))
+                        .then(Commands.argument("type", StringArgumentType.word())
+                                .then(Commands.argument("seconds", LongArgumentType.longArg(0, 31536000))
+                                        .then(Commands.argument("players", StringArgumentType.word())
+                                                .then(Commands.argument("reason", StringArgumentType.greedyString())
+                                                        .executes(context -> bulkModerate(
+                                                                context.getSource(),
+                                                                StringArgumentType.getString(context, "type"),
+                                                                LongArgumentType.getLong(context, "seconds"),
+                                                                StringArgumentType.getString(context, "players"),
+                                                                StringArgumentType.getString(context, "reason"))))))))
                 .then(Commands.literal("kick")
                         .requires(source -> canUse(source, "moderation.kick"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -496,7 +509,8 @@ public final class ModerationCommands {
                 "Moderation GUI: /moderationgui edition, export [limit], settings [set <key> <true|false>], "
                         + "profile <player>, history <player>, "
                         + "rank list|create|edit|delete|assign|unassign|parent, note <player> <notes>, "
-                        + "activity, analytics, kick <player> <reason>, "
+                        + "activity, analytics, bulk <warn|mute|ban> <seconds> <player1,player2> <reason>, "
+                        + "kick <player> <reason>, "
                         + "permission rank|player <target> <node> <grant|deny|remove>, "
                         + "warn <player> <reason>, mute <player> <reason>, "
                         + "ban <player> <reason>, tempban <player> <seconds> <reason>, "
@@ -626,6 +640,55 @@ public final class ModerationCommands {
             return 1;
         } catch (SQLException | IllegalStateException exception) {
             return reportFailure(source, "Could not generate advanced analytics.", exception);
+        }
+    }
+
+    private static int bulkModerate(CommandSourceStack source, String rawType,
+                                     long durationSeconds, String rawPlayers, String reason) {
+        PunishmentRepository.Type type = switch (rawType.toLowerCase(java.util.Locale.ROOT)) {
+            case "warn" -> PunishmentRepository.Type.WARN;
+            case "mute" -> PunishmentRepository.Type.MUTE;
+            case "ban" -> PunishmentRepository.Type.BAN;
+            default -> null;
+        };
+        if (type == null) {
+            source.sendFailure(Component.literal("Bulk type must be warn, mute or ban."));
+            return 0;
+        }
+        if (type == PunishmentRepository.Type.WARN && durationSeconds != 0) {
+            source.sendFailure(Component.literal("WARN does not use a duration; set seconds to 0."));
+            return 0;
+        }
+        long now = System.currentTimeMillis();
+        Long expiresAt;
+        try {
+            expiresAt = durationSeconds == 0 ? null
+                    : Math.addExact(now, Math.multiplyExact(durationSeconds, 1000L));
+            var targets = java.util.Arrays.stream(rawPlayers.split(",", -1))
+                    .map(String::trim).toList();
+            var applied = new dev.herade.moderationgui.service.BulkModerationService(
+                    ModerationGui.database(), ModerationGui.players(),
+                    ModerationGui.punishments(), ModerationGui.activityLog())
+                    .issue(targets, type, reason, actorUuid(source), now, expiresAt);
+
+            for (var punishment : applied) {
+                ServerPlayer online = source.getServer().getPlayerList()
+                        .getPlayer(UUID.fromString(punishment.playerUuid()));
+                if (online == null) continue;
+                if (type == PunishmentRepository.Type.BAN) {
+                    online.connection.disconnect(Component.literal(
+                            "You are banned from this server. Reason: " + reason));
+                } else {
+                    online.sendSystemMessage(Component.literal(
+                            (type == PunishmentRepository.Type.MUTE ? "You have been muted. " : "You received a warning. ")
+                                    + "Reason: " + reason));
+                }
+            }
+            source.sendSuccess(() -> Component.literal(
+                    "Bulk " + type + " applied to " + applied.size() + " players."), true);
+            return applied.size();
+        } catch (SQLException | IllegalArgumentException | ArithmeticException exception) {
+            return reportFailure(source, "Bulk moderation failed; no partial batch was applied.", exception);
         }
     }
 

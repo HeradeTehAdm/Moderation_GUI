@@ -8,7 +8,7 @@ public enum EditionFeature {
     ACTIVITY_LOG(Edition.FREE, true),
     ADVANCED_ANALYTICS(Edition.PRO, true),
     AUDIT_EXPORT(Edition.PRO, true),
-    BULK_MODERATION(Edition.PRO, false),
+    BULK_MODERATION(Edition.PRO, true),
     CUSTOM_GUI_THEMES(Edition.PRO, false);
 
     private final Edition minimumEdition;
