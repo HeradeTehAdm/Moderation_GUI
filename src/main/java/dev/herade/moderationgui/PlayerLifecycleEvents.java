@@ -22,19 +22,17 @@ public final class PlayerLifecycleEvents {
             // Ошибка обновления профиля не должна пропускать проверку активного BAN.
             try {
                 if (ModerationGui.settings().enabled("enforce_bans")) {
-                    ModerationGui.punishments()
-                            .findActiveForPlayer(player.getUUID().toString(), System.currentTimeMillis())
-                            .stream()
-                            .filter(punishment -> punishment.type()
-                                    == dev.herade.moderationgui.storage.PunishmentRepository.Type.BAN)
-                            .findFirst()
-                            .ifPresent(punishment -> player.connection.disconnect(
-                                    net.minecraft.network.chat.Component.literal(
-                                            "You are banned from this server. Reason: " + punishment.reason())));
+                    dev.herade.moderationgui.service.BanEnforcementService.findActiveBan(
+                            ModerationGui.punishments(), player.getUUID().toString(),
+                            System.currentTimeMillis()).ifPresent(punishment ->
+                            player.connection.disconnect(net.minecraft.network.chat.Component.literal(
+                                    "You are banned from this server. Reason: " + punishment.reason())));
                 }
             } catch (Exception exception) {
-                ModerationGui.LOGGER.error("Could not enforce active bans for {}.",
+                ModerationGui.LOGGER.error("Could not enforce active bans for {}. Denying join because the ban status could not be verified.",
                         player.getUUID(), exception);
+                player.connection.disconnect(net.minecraft.network.chat.Component.literal(
+                        "Moderation checks are temporarily unavailable. Please reconnect later."));
             }
         });
 
