@@ -40,7 +40,8 @@ public final class ModerationCommands {
                 .then(Commands.literal("edition")
                         .executes(context -> showEdition(context.getSource())))
                 .then(Commands.literal("settings")
-                        .requires(source -> canUse(source, "moderation.settings.view"))
+                        .requires(source -> canUse(source, "moderation.settings.view")
+                                || canUse(source, "moderation.settings.edit"))
                         .executes(context -> showSettings(context.getSource()))
                         .then(Commands.literal("set")
                                 .requires(source -> canUse(source, "moderation.settings.edit"))
@@ -220,6 +221,11 @@ public final class ModerationCommands {
 
 
     private static int showSettings(CommandSourceStack source) {
+        if (!canUse(source, "moderation.settings.view")) {
+            source.sendFailure(Component.literal(
+                    "You do not have permission to view server settings."));
+            return 0;
+        }
         try {
             source.sendSuccess(() -> Component.literal(String.join("\n",
                     ModerationGui.settings().describe())), false);
