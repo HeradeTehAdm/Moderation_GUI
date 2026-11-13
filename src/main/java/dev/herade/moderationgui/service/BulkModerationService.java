@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 
 /** Атомарно применяет одно наказание к ограниченной группе офлайн- и онлайн-профилей. */
 public final class BulkModerationService {
@@ -46,6 +47,9 @@ public final class BulkModerationService {
         if (expiresAt != null && expiresAt <= createdAt) {
             throw new IllegalArgumentException("Punishment expiry must be later than creation");
         }
+        if (type == PunishmentRepository.Type.WARN && expiresAt != null) {
+            throw new IllegalArgumentException("WARN cannot have an expiry time");
+        }
 
         List<PlayerRepository.Player> targets = new ArrayList<>();
         Set<String> uniqueNames = new HashSet<>();
@@ -62,6 +66,12 @@ public final class BulkModerationService {
             }
             PlayerRepository.Player target = players.findByName(name)
                     .orElseThrow(() -> new IllegalArgumentException("Player profile not found: " + name));
+            try {
+                UUID.fromString(target.uuid());
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException(
+                        "Player profile contains an invalid UUID: " + name, exception);
+            }
             targets.add(target);
         }
 

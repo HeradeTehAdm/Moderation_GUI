@@ -35,8 +35,8 @@ class BulkModerationServiceTest {
         punishments = new PunishmentRepository(database);
         activity = new ActivityLogRepository(database);
         service = new BulkModerationService(database, players, punishments, activity);
-        players.recordJoin("player-1", "PlayerOne", NOW);
-        players.recordJoin("player-2", "PlayerTwo", NOW);
+        players.recordJoin("00000000-0000-0000-0000-000000000001", "PlayerOne", NOW);
+        players.recordJoin("00000000-0000-0000-0000-000000000002", "PlayerTwo", NOW);
     }
 
     @AfterEach
@@ -47,7 +47,7 @@ class BulkModerationServiceTest {
     @Test
     void appliesBatchAndAuditToEveryTarget() throws Exception {
         var result = service.issue(List.of("PlayerOne", "PlayerTwo"),
-                PunishmentRepository.Type.MUTE, "Repeated spam", "staff-1",
+                PunishmentRepository.Type.MUTE, "Repeated spam", "00000000-0000-0000-0000-000000000099",
                 NOW, NOW + 60_000L);
 
         assertEquals(2, result.size());
@@ -77,6 +77,22 @@ class BulkModerationServiceTest {
                 List.of("PlayerOne", "PlayerTwo"), PunishmentRepository.Type.BAN,
                 "Reason", "staff-1", NOW, null));
         assertTrue(punishments.findRecent(20, NOW).isEmpty());
+    }
+
+    @Test
+    void rejectsMalformedStoredUuidBeforeWritingAnyPunishment() throws Exception {
+        players.recordJoin("not-a-uuid", "Malformed", NOW);
+        assertThrows(IllegalArgumentException.class, () -> service.issue(
+                List.of("Malformed"), PunishmentRepository.Type.BAN,
+                "Reason", "00000000-0000-0000-0000-000000000099", NOW, null));
+        assertTrue(punishments.findRecent(20, NOW).isEmpty());
+    }
+
+    @Test
+    void warningsCannotHaveAnExpiryTime() {
+        assertThrows(IllegalArgumentException.class, () -> service.issue(
+                List.of("PlayerOne"), PunishmentRepository.Type.WARN,
+                "Reason", "00000000-0000-0000-0000-000000000099", NOW, NOW + 1000));
     }
 
     @Test
