@@ -23,6 +23,8 @@ public final class ModerationScreen extends Screen {
     private String content = "Loading data from server...";
     private List<String> contentLines = List.of(content);
     private int contentPage;
+    private int contentAreaTop;
+    private int contentAreaBottom;
     private MultiLineTextWidget contentWidget;
     private EditBox targetInput;
     private EditBox reasonInput;
@@ -73,6 +75,7 @@ public final class ModerationScreen extends Screen {
         }
 
         int contentY = firstRowY + 76;
+        contentAreaTop = contentY;
         contentWidget = new MultiLineTextWidget(
                 (this.width - Math.max(120, this.width - 60)) / 2,
                 contentY,
@@ -254,6 +257,7 @@ public final class ModerationScreen extends Screen {
         }
 
         int footerY = this.height - 28;
+        contentAreaBottom = footerY;
         int footerWidth = Math.min(76, Math.max(58, (this.width - 36) / 5));
         int footerGap = 4;
         int footerStart = (this.width - (footerWidth * 5 + footerGap * 4)) / 2;
@@ -484,6 +488,16 @@ public final class ModerationScreen extends Screen {
             return;
         }
         runCommand("moderationgui unpunish " + id);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY,
+                                 double horizontalAmount, double verticalAmount) {
+        if (verticalAmount == 0 || mouseY < contentAreaTop || mouseY >= contentAreaBottom) {
+            return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        }
+        changePage(verticalAmount < 0 ? 1 : -1);
+        return true;
     }
 
     private void requestSection() {
