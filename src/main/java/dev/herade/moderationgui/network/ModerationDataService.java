@@ -1,6 +1,9 @@
 package dev.herade.moderationgui.network;
 
 import dev.herade.moderationgui.ModerationGui;
+import dev.herade.moderationgui.edition.EditionFeature;
+import dev.herade.moderationgui.edition.EditionManager;
+import dev.herade.moderationgui.service.AdvancedAnalyticsService;
 import dev.herade.moderationgui.storage.ActivityLogRepository;
 import dev.herade.moderationgui.storage.PermissionRepository;
 import dev.herade.moderationgui.storage.PunishmentRepository;
@@ -23,6 +26,10 @@ public final class ModerationDataService {
         String permission = requiredPermission(section);
         if (permission == null) return "Unknown section.";
         try {
+            if (section.equals("Analytics")
+                    && !EditionManager.has(EditionFeature.ADVANCED_ANALYTICS)) {
+                return "Advanced Analytics is available in the Pro edition.";
+            }
             if (!hasAccess(viewer, permission)) {
                 return "Access denied. Required permission: " + permission;
             }
@@ -34,6 +41,8 @@ public final class ModerationDataService {
                 case "History" -> loadHistory();
                 case "Activity Log" -> loadActivity();
                 case "Settings" -> ModerationGui.settings().describe();
+                case "Analytics" -> AdvancedAnalyticsService.generate(
+                        ModerationGui.database(), System.currentTimeMillis());
                 default -> List.of();
             };
             if (!filter.isEmpty() && !section.equals("Players")) {
@@ -129,6 +138,7 @@ public final class ModerationDataService {
             case "History" -> "moderation.history.view";
             case "Settings" -> "moderation.settings.view";
             case "Activity Log" -> "moderation.activity.view";
+            case "Analytics" -> "moderation.analytics.view";
             default -> null;
         };
     }

@@ -160,6 +160,10 @@ public final class ModerationCommands {
                 .then(Commands.literal("activity")
                         .requires(source -> canUse(source, "moderation.activity.view"))
                         .executes(context -> showActivity(context.getSource())))
+                .then(Commands.literal("analytics")
+                        .requires(source -> canUse(source, "moderation.analytics.view")
+                                && EditionManager.has(EditionFeature.ADVANCED_ANALYTICS))
+                        .executes(context -> showAnalytics(context.getSource())))
                 .then(Commands.literal("kick")
                         .requires(source -> canUse(source, "moderation.kick"))
                         .then(Commands.argument("player", StringArgumentType.word())
@@ -611,6 +615,17 @@ public final class ModerationCommands {
             return 1;
         } catch (SQLException | IllegalArgumentException exception) {
             return reportFailure(source, "Could not update player notes.", exception);
+        }
+    }
+
+    private static int showAnalytics(CommandSourceStack source) {
+        try {
+            var report = dev.herade.moderationgui.service.AdvancedAnalyticsService.generate(
+                    ModerationGui.database(), System.currentTimeMillis());
+            source.sendSuccess(() -> Component.literal(String.join("\n", report)), false);
+            return 1;
+        } catch (SQLException | IllegalStateException exception) {
+            return reportFailure(source, "Could not generate advanced analytics.", exception);
         }
     }
 

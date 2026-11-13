@@ -16,7 +16,7 @@ import java.util.List;
 public final class ModerationScreen extends Screen {
     private static final String[] SECTIONS = {
             "Players", "Ranks", "Permissions", "Punishments",
-            "History", "Settings", "Activity Log"
+            "History", "Settings", "Activity Log", "Analytics"
     };
 
     private final String selectedSection;
