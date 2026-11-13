@@ -83,6 +83,19 @@ class StorageRepositoryTest {
     }
 
     @Test
+    void exactPlayerLookupDoesNotDependOnSubstringSearchLimit() throws Exception {
+        players.recordJoin("older-player", "ExactTarget", 1);
+        for (int index = 0; index < 110; index++) {
+            players.recordJoin("newer-" + index, "OtherTarget" + index, 100 + index);
+        }
+
+        assertEquals(100, players.searchByName("target", 100).size());
+        assertEquals("older-player", players.findByName("ExactTarget").orElseThrow().uuid());
+        assertEquals("older-player", players.findByName("exacttarget").orElseThrow().uuid());
+        assertTrue(players.findByName("MissingPlayer").isEmpty());
+    }
+
+    @Test
     void lastSeenTimestampNeverMovesBackwards() throws Exception {
         players.recordJoin("player-uuid", "PlayerOne", 500);
         players.updateLastSeen("player-uuid", 700);

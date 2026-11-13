@@ -12,23 +12,28 @@ public final class PlayerLifecycleEvents {
         ServerPlayConnectionEvents.JOIN.register((listener, sender, server) -> {
             ServerPlayer player = listener.getPlayer();
             try {
-                PlayerRepository repository = ModerationGui.players();
-                repository.recordJoin(player.getUUID().toString(),
+                ModerationGui.players().recordJoin(player.getUUID().toString(),
                         player.getName().getString(), System.currentTimeMillis());
-
-                if (ModerationGui.settings().enabled("enforce_bans")) {
-                    ModerationGui.punishments()
-                        .findActiveForPlayer(player.getUUID().toString(), System.currentTimeMillis())
-                        .stream()
-                        .filter(punishment -> punishment.type()
-                                == dev.herade.moderationgui.storage.PunishmentRepository.Type.BAN)
-                        .findFirst()
-                        .ifPresent(punishment -> player.connection.disconnect(
-                                net.minecraft.network.chat.Component.literal(
-                                        "You are banned from this server. Reason: " + punishment.reason())));
-                }
             } catch (Exception exception) {
                 ModerationGui.LOGGER.error("Could not save player join profile for {}.",
+                        player.getUUID(), exception);
+            }
+
+            // Ошибка обновления профиля не должна пропускать проверку активного BAN.
+            try {
+                if (ModerationGui.settings().enabled("enforce_bans")) {
+                    ModerationGui.punishments()
+                            .findActiveForPlayer(player.getUUID().toString(), System.currentTimeMillis())
+                            .stream()
+                            .filter(punishment -> punishment.type()
+                                    == dev.herade.moderationgui.storage.PunishmentRepository.Type.BAN)
+                            .findFirst()
+                            .ifPresent(punishment -> player.connection.disconnect(
+                                    net.minecraft.network.chat.Component.literal(
+                                            "You are banned from this server. Reason: " + punishment.reason())));
+                }
+            } catch (Exception exception) {
+                ModerationGui.LOGGER.error("Could not enforce active bans for {}.",
                         player.getUUID(), exception);
             }
         });

@@ -744,9 +744,7 @@ public final class ModerationCommands {
     }
 
     private static Optional<PlayerRepository.Player> findPlayer(String name) throws SQLException {
-        return ModerationGui.players().searchByName(name, 100).stream()
-                .filter(player -> player.lastName().equalsIgnoreCase(name))
-                .findFirst();
+        return ModerationGui.players().findByName(name);
     }
 
     private static String actorUuid(CommandSourceStack source) {

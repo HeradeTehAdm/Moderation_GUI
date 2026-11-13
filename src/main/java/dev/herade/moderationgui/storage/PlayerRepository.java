@@ -55,6 +55,24 @@ public final class PlayerRepository {
         }
     }
 
+    public Optional<Player> findByName(String username) throws SQLException {
+        if (username == null || username.isBlank() || username.length() > 16) {
+            return Optional.empty();
+        }
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT uuid, last_name, first_joined_at, last_seen_at, notes
+                FROM players
+                WHERE last_name = ? COLLATE NOCASE
+                ORDER BY last_seen_at DESC
+                LIMIT 1
+                """)) {
+            statement.setString(1, username.trim());
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? Optional.of(mapPlayer(result)) : Optional.empty();
+            }
+        }
+    }
+
     public List<Player> searchByName(String query, int limit) throws SQLException {
         if (limit < 1 || limit > 100) {
             throw new IllegalArgumentException("limit must be between 1 and 100");
