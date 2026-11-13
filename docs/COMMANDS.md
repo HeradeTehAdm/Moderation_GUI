@@ -32,6 +32,7 @@
 | `/moderationgui tempban <player> <seconds> <reason>` | Выдать временный BAN |
 | `/moderationgui kick <player> <reason>` | Отключить игрока без создания наказания |
 | `/moderationgui activity` | Показать последние 20 записей Activity Log |
+| `/moderationgui analytics` | Pro: статистика профилей, рангов, наказаний и активности модераторов |
 | `/moderationgui unpunish <id>` | Снять наказание по его ID |
 
 Временные сроки указываются в секундах; максимальный срок одной команды — 365 дней. BAN отключает игрока сразу, если тот онлайн, и проверяется при следующем подключении. MUTE блокирует публичный чат и широковещательные командные сообщения. Приватные сообщения, которые реализуют другие моды, этим обработчиком не перехватываются.
@@ -95,6 +96,7 @@
 - `moderation.ranks.assign`
 - `moderation.ranks.edit`
 - `moderation.activity.view`
+- `moderation.analytics.view` (только Pro)
 - `moderation.export` (только Pro)
 - `moderation.settings.view`
 - `moderation.settings.edit`

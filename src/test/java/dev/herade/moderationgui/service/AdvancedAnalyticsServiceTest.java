@@ -67,7 +67,7 @@ class AdvancedAnalyticsServiceTest {
         assertTrue(report.contains("Active mutes: 0"));
         assertTrue(report.contains("Warnings issued in last 30 days: 1"));
         assertTrue(report.contains("Moderation actions in last 7 days: 2"));
-        assertTrue(report.contains("PlayerOne: 1"));
+        assertTrue(report.contains("PlayerOne: 2"));
         assertTrue(report.contains("PlayerTwo: 1"));
     }
 

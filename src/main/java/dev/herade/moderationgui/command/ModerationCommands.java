@@ -496,7 +496,7 @@ public final class ModerationCommands {
                 "Moderation GUI: /moderationgui edition, export [limit], settings [set <key> <true|false>], "
                         + "profile <player>, history <player>, "
                         + "rank list|create|edit|delete|assign|unassign|parent, note <player> <notes>, "
-                        + "activity, kick <player> <reason>, "
+                        + "activity, analytics, kick <player> <reason>, "
                         + "permission rank|player <target> <node> <grant|deny|remove>, "
                         + "warn <player> <reason>, mute <player> <reason>, "
                         + "ban <player> <reason>, tempban <player> <seconds> <reason>, "
