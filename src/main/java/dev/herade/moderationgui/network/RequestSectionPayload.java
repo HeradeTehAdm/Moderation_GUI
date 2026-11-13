@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
 /** Клиентский запрос данных одного раздела интерфейса. */
-public record RequestSectionPayload(String section) implements CustomPacketPayload {
+public record RequestSectionPayload(String section, String filter) implements CustomPacketPayload {
     public static final Type<RequestSectionPayload> TYPE =
             new Type<>(Identifier.fromNamespaceAndPath("moderation_gui", "request_section"));
 
@@ -15,6 +15,8 @@ public record RequestSectionPayload(String section) implements CustomPacketPaylo
             StreamCodec.composite(
                     ByteBufCodecs.STRING_UTF8,
                     RequestSectionPayload::section,
+                    ByteBufCodecs.STRING_UTF8,
+                    RequestSectionPayload::filter,
                     RequestSectionPayload::new
             );
 
