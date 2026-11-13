@@ -30,9 +30,11 @@ public final class ModerationServerNetworking {
             }
 
             String section = payload.section();
+            String filter = payload.filter();
             String content = section == null || section.length() > 32
+                    || filter == null || filter.length() > 64
                     ? "Invalid section request."
-                    : ModerationDataService.load(player, section);
+                    : ModerationDataService.load(player, section, filter);
             send(player, section, limitUtf8(content, MAX_RESPONSE_BYTES));
         });
     }
