@@ -37,6 +37,9 @@ public final class ModerationSettings {
             Properties properties = new Properties();
             try (var input = Files.newInputStream(file)) {
                 properties.load(input);
+            } catch (IllegalArgumentException exception) {
+                LOGGER.warn("Malformed settings file; restoring all defaults.", exception);
+                properties.clear();
             }
             for (String key : DEFAULTS.keySet()) {
                 String value = properties.getProperty(key);
